@@ -1,0 +1,13 @@
+{
+  // Apunta al python del venv del backend para que "vea" las librerías instaladas
+  // ahí (fastapi, sqlmodel, etc.) y desaparezcan los avisos de "import no resuelto".
+  // ${workspaceFolder} = raíz del workspace abierto (fastApiNoAi).
+  "python.defaultInterpreterPath": "${workspaceFolder}/parciales/parcial/backend/.venv/bin/python",
+
+  // Carpetas extra que Pylance trata como "raíz de imports".
+  // Al añadir backend/, los imports tipo `from app.xxx import ...` se resuelven
+  // correctamente (porque `app/` vive dentro de esa carpeta, no en la raíz del workspace).
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/parciales/parcial/backend"
+  ]
+}
