@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy.orm import selectinload
-from sqlmodel import select
-
 from app.core.uow import UnitOfWork
-from app.modules.categoria.model import Categoria
-from app.modules.ingrediente.model import Ingrediente
 from app.modules.producto.link_models import ProductoCategoria, ProductoIngrediente
 from app.modules.producto.model import Producto
 from app.modules.producto.schema import (
@@ -17,25 +11,6 @@ from app.modules.producto.schema import (
     ProductoIngredienteCreate,
     ProductoUpdate,
 )
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _base_query():
-    return (
-        select(Producto)
-        .where(Producto.deleted_at == None)  # noqa: E711
-        .options(
-            selectinload(Producto.categoria_links).selectinload(
-                ProductoCategoria.categoria
-            ),
-            selectinload(Producto.ingrediente_links).selectinload(
-                ProductoIngrediente.ingrediente
-            ),
-        )
-    )
 
 
 def _to_read_dict(producto: Producto) -> dict:
@@ -74,23 +49,19 @@ def list_productos(
     precio_min: Decimal | None = None,
     precio_max: Decimal | None = None,
 ) -> list[dict]:
-    stmt = _base_query()
-    if q:
-        stmt = stmt.where(Producto.nombre.ilike(f"%{q}%"))
-    if disponible is not None:
-        stmt = stmt.where(Producto.disponible == disponible)
-    if precio_min is not None:
-        stmt = stmt.where(Producto.precio_base >= precio_min)
-    if precio_max is not None:
-        stmt = stmt.where(Producto.precio_base <= precio_max)
-    stmt = stmt.offset(skip).limit(limit).order_by(Producto.id)
-    productos = uow.session.exec(stmt).all()
+    productos = uow.productos.list_with_relations(
+        skip=skip,
+        limit=limit,
+        q=q,
+        disponible=disponible,
+        precio_min=precio_min,
+        precio_max=precio_max,
+    )
     return [_to_read_dict(p) for p in productos]
 
 
 def get_producto(uow: UnitOfWork, producto_id: int) -> dict | None:
-    stmt = _base_query().where(Producto.id == producto_id)
-    producto = uow.session.exec(stmt).first()
+    producto = uow.productos.get_with_relations(producto_id)
     if producto is None:
         return None
     return _to_read_dict(producto)
@@ -107,11 +78,7 @@ def _validate_categorias(
     principales = sum(1 for i in items if i.es_principal)
     if principales > 1:
         raise ValueError("Solo una categoria puede ser principal por producto")
-    stmt = select(Categoria.id).where(
-        Categoria.id.in_(ids),
-        Categoria.deleted_at == None,  # noqa: E711
-    )
-    found = set(uow.session.exec(stmt).all())
+    found = uow.categorias.active_ids(ids)
     missing = set(ids) - found
     if missing:
         raise ValueError(f"Categorias no encontradas o inactivas: {sorted(missing)}")
@@ -125,11 +92,7 @@ def _validate_ingredientes(
     ids = [i.ingrediente_id for i in items]
     if len(ids) != len(set(ids)):
         raise ValueError("Ingredientes duplicados en el payload")
-    stmt = select(Ingrediente.id).where(
-        Ingrediente.id.in_(ids),
-        Ingrediente.deleted_at == None,  # noqa: E711
-    )
-    found = set(uow.session.exec(stmt).all())
+    found = uow.ingredientes.active_ids(ids)
     missing = set(ids) - found
     if missing:
         raise ValueError(f"Ingredientes no encontrados o inactivos: {sorted(missing)}")
@@ -143,19 +106,14 @@ def _sync_categoria_links(
         item.categoria_id: item for item in desired
     }
 
-    existing = uow.session.exec(
-        select(ProductoCategoria).where(
-            ProductoCategoria.producto_id == producto_id
-        )
-    ).all()
     existing_by_cat: dict[int, ProductoCategoria] = {
-        link.categoria_id: link for link in existing
+        link.categoria_id: link for link in uow.productos.categoria_links(producto_id)
     }
 
     for cat_id, item in desired_by_cat.items():
         link = existing_by_cat.get(cat_id)
         if link is None:
-            uow.session.add(
+            uow.productos.add_categoria_link(
                 ProductoCategoria(
                     producto_id=producto_id,
                     categoria_id=cat_id,
@@ -164,11 +122,11 @@ def _sync_categoria_links(
             )
         else:
             link.es_principal = item.es_principal
-            uow.session.add(link)
+            uow.productos.add_categoria_link(link)
 
     for cat_id, link in existing_by_cat.items():
         if cat_id not in desired_by_cat:
-            uow.session.delete(link)
+            uow.productos.remove_link(link)
 
 
 def _sync_ingrediente_links(
@@ -179,19 +137,15 @@ def _sync_ingrediente_links(
         item.ingrediente_id: item for item in desired
     }
 
-    existing = uow.session.exec(
-        select(ProductoIngrediente).where(
-            ProductoIngrediente.producto_id == producto_id
-        )
-    ).all()
     existing_by_ing: dict[int, ProductoIngrediente] = {
-        link.ingrediente_id: link for link in existing
+        link.ingrediente_id: link
+        for link in uow.productos.ingrediente_links(producto_id)
     }
 
     for ing_id, item in desired_by_ing.items():
         link = existing_by_ing.get(ing_id)
         if link is None:
-            uow.session.add(
+            uow.productos.add_ingrediente_link(
                 ProductoIngrediente(
                     producto_id=producto_id,
                     ingrediente_id=ing_id,
@@ -200,30 +154,30 @@ def _sync_ingrediente_links(
             )
         else:
             link.es_removible = item.es_removible
-            uow.session.add(link)
+            uow.productos.add_ingrediente_link(link)
 
     for ing_id, link in existing_by_ing.items():
         if ing_id not in desired_by_ing:
-            uow.session.delete(link)
+            uow.productos.remove_link(link)
 
 
 def create_producto(uow: UnitOfWork, data: ProductoCreate) -> dict:
     _validate_categorias(uow, data.categorias)
     _validate_ingredientes(uow, data.ingredientes)
 
-    producto = Producto(
-        nombre=data.nombre,
-        descripcion=data.descripcion,
-        precio_base=data.precio_base,
-        imagenes_url=list(data.imagenes_url),
-        stock_cantidad=data.stock_cantidad,
-        disponible=data.disponible,
+    producto = uow.productos.save(
+        Producto(
+            nombre=data.nombre,
+            descripcion=data.descripcion,
+            precio_base=data.precio_base,
+            imagenes_url=list(data.imagenes_url),
+            stock_cantidad=data.stock_cantidad,
+            disponible=data.disponible,
+        )
     )
-    uow.session.add(producto)
-    uow.session.flush()
 
     for item in data.categorias:
-        uow.session.add(
+        uow.productos.add_categoria_link(
             ProductoCategoria(
                 producto_id=producto.id,
                 categoria_id=item.categoria_id,
@@ -232,7 +186,7 @@ def create_producto(uow: UnitOfWork, data: ProductoCreate) -> dict:
         )
 
     for item in data.ingredientes:
-        uow.session.add(
+        uow.productos.add_ingrediente_link(
             ProductoIngrediente(
                 producto_id=producto.id,
                 ingrediente_id=item.ingrediente_id,
@@ -240,7 +194,7 @@ def create_producto(uow: UnitOfWork, data: ProductoCreate) -> dict:
             )
         )
 
-    uow.session.flush()
+    uow.productos.flush()
     reloaded = get_producto(uow, producto.id)
     assert reloaded is not None
     return reloaded
@@ -249,8 +203,8 @@ def create_producto(uow: UnitOfWork, data: ProductoCreate) -> dict:
 def update_producto(
     uow: UnitOfWork, producto_id: int, data: ProductoUpdate
 ) -> dict | None:
-    producto = uow.session.get(Producto, producto_id)
-    if producto is None or producto.deleted_at is not None:
+    producto = uow.productos.get(producto_id)
+    if producto is None:
         return None
 
     scalar_fields = data.model_dump(
@@ -265,17 +219,9 @@ def update_producto(
     if data.ingredientes is not None:
         _sync_ingrediente_links(uow, producto_id, data.ingredientes)
 
-    uow.session.add(producto)
-    uow.session.flush()
+    uow.productos.save(producto)
     return get_producto(uow, producto_id)
 
 
 def delete_producto(uow: UnitOfWork, producto_id: int) -> bool:
-    producto = uow.session.get(Producto, producto_id)
-    if producto is None or producto.deleted_at is not None:
-        return False
-
-    producto.deleted_at = _now()
-    uow.session.add(producto)
-    uow.session.flush()
-    return True
+    return uow.productos.soft_delete(producto_id)

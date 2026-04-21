@@ -22,9 +22,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: acepta cualquier puerto de localhost en desarrollo (5173, 5174, etc.)
+# para no tener que hardcodear el puerto cuando Vite lo cambia si está ocupado.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_methods=["*"],
     allow_headers=["*"],
 )
