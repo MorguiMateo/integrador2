@@ -1,0 +1,600 @@
+================================================================================
+GUÍA DEL VIDEO — PARCIAL INTEGRADOR (FASTAPI + REACT)
+Duración orientativa: ~10–12 min. Máximo permitido por consigna: 15 min.
+Estructura: 3 bloques + demo (los tiempos son guía, no obligatorios al segundo).
+================================================================================
+
+CRITERIO DE SELECCIÓN DE MÓDULOS
+- Backend a exponer EN PROFUNDIDAD: módulo `producto` (tuyo).
+  Se muestra de pasada el modelo de `categoria` e `ingrediente` SOLO para
+  justificar las relaciones (back_populates) y la tabla-enlace.
+- Frontend a exponer:
+    * Módulo "simple" (para mostrar useQuery/useMutation limpios):
+      `categorias` -> components/CategoriaModal.tsx + useCategorias.ts.
+    * Módulo "relacionado" (para mostrar routing dinámico + datos anidados):
+      `productos` -> ProductosPage.tsx + ProductoDetailPage.tsx.
+- Demo en vivo: se hace TODO con `productos` porque cubre relaciones,
+  validaciones y navegación dinámica (/productos/:id).
+
+================================================================================
+ANTES DE GRABAR — CHECKLIST DE SETUP (NO SE FILMA)
+================================================================================
+1. Postgres corriendo y la DB `parcial` creada.
+2. Terminal A -> backend: `cd backend && uvicorn app.main:app --reload`
+   - Debe aparecer: "Uvicorn running on http://127.0.0.1:8000"
+   - Tener abierto /docs en una pestaña para mostrar Swagger si hace falta.
+3. Terminal B -> frontend: `cd frontend && pnpm run dev`
+   - Debe quedar en http://localhost:5173 (o 5174).
+4. DevTools del navegador abiertas en la pestaña Network (filtrar por "Fetch/XHR").
+5. pgAdmin/DBeaver conectados a la DB `parcial` con las 5 tablas visibles:
+   categorias, ingredientes, productos, producto_categoria, producto_ingrediente.
+6. Tener 1 categoría y 2 ingredientes precargados (para la demo del producto).
+
+
+================================================================================
+BLOQUE 1 — BACKEND: EL CORAZÓN DE LA API      (~3 min objetivo)
+================================================================================
+
+--------------------------------------------------------------------------------
+[0:00 – 0:15]  INTRO (~15 s)
+--------------------------------------------------------------------------------
+Decir en cámara:
+  "Soy Mateo Morgui y esta es la primera sección donde vamos a ver el backend.
+  Esta API está hecha con FastAPI + SQLModel sobre PostgreSQL. Está
+  organizada por módulos: categoria, ingrediente y producto, donde producto
+  tiene relaciones muchos-a-muchos con los otros dos."
+
+Mostrar en pantalla el árbol `backend/app/` (abierto en la IDE):
+  app/
+    core/   (database.py, uow.py, repository.py)
+    modules/
+      categoria/
+      ingrediente/
+      producto/   <-- el módulo que voy a explicar en detalle
+
+--------------------------------------------------------------------------------
+[0:15 – 0:40]  ENTRY POINT  `backend/app/main.py`
+--------------------------------------------------------------------------------
+Abrir el archivo. Explicar 3 cosas concretas:
+
+1. Líneas 12–15: `lifespan` -> llama a `create_db_and_tables()` en el arranque.
+   "FastAPI usa el context manager `lifespan` para correr código al iniciar y
+   al cerrar; acá lo aprovecho para crear las tablas si no existen."
+   
+   ► En corto: FastAPI lo llama al arrancar; úsalo para crear las tablas.
+
+2. Líneas 27–32: middleware CORS con `allow_origin_regex`.
+   "Permito cualquier puerto de localhost porque Vite a veces arranca en 5173
+   y otras en 5174 si el puerto está ocupado, y así no tengo que hardcodearlo."
+   ► En corto: acepta cualquier puerto de localhost para no hardcodearlo.
+
+3. Líneas 35–37: `include_router` de los 3 routers.
+   "Cada módulo expone su router y acá los monto en la app."
+   ► En corto: une todos los routers en una sola app.
+
+
+--------------------------------------------------------------------------------
+[0:40 – 1:05]  INFRAESTRUCTURA  `backend/app/core/`
+--------------------------------------------------------------------------------
+Abrir los 3 archivos del `core/` y explicar rápido (sin leer línea por línea):
+
+1. `core/database.py`
+   - Líneas 8–12: `DATABASE_URL` viene del archivo `.env`; si no existe, usa postgres local por defecto.
+
+   - Línea 15: `create_engine(DATABASE_URL, echo=True)`.
+     -> "echo=True loguea el SQL en consola; lo vamos a ver en la demo."
+
+   - Líneas 18–29: los imports dentro de `create_db_and_tables` existen para
+     que `SQLModel.metadata` "conozca" todas las tablas antes de crearlas.
+     "Es un tip concreto: si no importás los modelos acá, `create_all` no
+     crea nada porque SQLModel no sabe que existen."
+   ► En corto: lee la URL de la DB del .env, loguea el SQL y registra los
+     modelos antes de crear las tablas.
+
+2. `core/repository.py`  (BaseRepository genérico)
+   - "Este repositorio es la única pieza que habla con la base de datos.
+     Los services le piden datos a él; nunca tocan la session directamente."
+
+   - Líneas 23–26: `base_stmt()` arranca siempre con `deleted_at IS NULL`,
+     así ninguna consulta devuelve registros borrados (SOFT DELETE).
+
+   - Líneas 41–50: `soft_delete` no borra la fila; pone `deleted_at = now()`.
+     "Cuando borro un producto en la demo, sigue en la DB. Así no rompo
+      las relaciones que apuntan a él."
+   ► En corto: toda la DB pasa por acá; borrar es solo poner una fecha.
+
+3. `core/uow.py`  (Unit of Work)
+   - "El UoW envuelve todo el request en una transacción. Cuando entrás al
+     `with`, abre la session y crea los tres repos. Cuando salís, hace
+     commit si todo salió bien o rollback si hubo cualquier error."
+
+   - Línea 30: `Session(engine, expire_on_commit=False)`.
+     "Sin `expire_on_commit=False`, después del commit los objetos quedan
+     detached y FastAPI puede fallar al serializar con `response_model`
+     (DetachedInstanceError)."
+
+   ► En corto: abre la sesión, agrupa los repos y hace commit o rollback
+     automáticamente al terminar.
+
+
+--------------------------------------------------------------------------------
+[1:05 – 1:40]  MODELADO  — PRODUCTO Y RELACIONES      (★ PARTE CLAVE)
+--------------------------------------------------------------------------------
+Abrir `backend/app/modules/producto/model.py`
+
+Explicar en este orden:
+
+1. Líneas 13–16: dos `CheckConstraint` en `__table_args__`.
+   "Precio y stock no pueden ser negativos. Pydantic también lo valida,
+   pero este constraint vive en la DB: aunque alguien bypass Pydantic,
+   Postgres lo rechaza igual."
+   ► En corto: doble red de seguridad; la DB es la última línea de defensa.
+
+2. Líneas 22–27: `precio_base` como `Numeric(10, 2)` -> Decimal, no float.
+   "El float binario tiene errores de redondeo; 5500.10 puede terminar
+   como 5500.0999999... Decimal lo evita, por eso los precios siempre
+   usan este tipo."
+   ► En corto: Decimal = precisión exacta; float = errores de centavos.
+
+3. Líneas 29–34: `imagenes_url` con `ARRAY(Text)` de Postgres.
+   "En vez de crear una tabla `producto_imagenes`, uso el tipo ARRAY nativo
+   de Postgres. Una sola columna guarda todas las URLs del producto."
+   ► En corto: lista de URLs en una columna; sin tabla extra.
+
+4. Líneas 41–57: `created_at`, `updated_at` y `deleted_at`.
+   "`server_default=func.now()` hace que Postgres ponga la fecha al insertar.
+   `onupdate=func.now()` la actualiza en cada UPDATE. Python no toca estas
+   fechas; las maneja la DB directamente."
+   ► En corto: la DB pone y actualiza las fechas; Python no interviene.
+
+5. Líneas 63–68: LAS RELACIONES (lo más importante de este bloque).
+   "Producto no apunta directo a Categoria; lo hace a través de
+   `ProductoCategoria`, la tabla del medio. `back_populates` conecta los
+   dos lados: desde el producto podés ver sus categorías, y desde una
+   categoría podés ver sus productos."
+   ► En corto: relación a través de tabla intermedia; `back_populates`
+     la hace navegable desde los dos lados.
+
+
+Abrir `backend/app/modules/producto/link_models.py`
+
+1. Líneas 15–26: `ProductoCategoria` -> tabla-enlace N:N.
+   - PK compuesta: `producto_id` + `categoria_id`.
+   - `es_principal`: indica cuál es la categoría principal del producto.
+     "Una N:N simple no puede guardar este dato extra; por eso modelo la
+     tabla del medio como entidad propia."
+   ► En corto: tabla del medio con campo extra; no alcanza con una N:N simple.
+
+2. Líneas 29–37: `ProductoIngrediente` -> mismo esquema, con `es_removible`.
+   "Sirve para casos como 'sin cebolla': el ingrediente está en la receta
+   pero el cliente puede pedirlo sin él."
+   ► En corto: igual que el anterior, pero el campo extra indica si el
+     ingrediente se puede quitar del pedido.
+
+
+Abrir por 5 segundos `categoria/model.py` (líneas 45–47) y
+`ingrediente/model.py` (líneas 33–35) SOLO para mostrar:
+   `producto_links: list[ProductoCategoria] = Relationship(
+        back_populates="categoria")`
+
+"Ven cómo desde el otro lado también tengo la lista, gracias a
+ `back_populates`."
+► En corto: `back_populates` hace que la relación exista en ambos modelos.
+
+
+--------------------------------------------------------------------------------
+[1:40 – 1:58]  SCHEMAS (PYDANTIC)   `producto/schema.py`
+--------------------------------------------------------------------------------
+"Este archivo define la forma de los datos que entran y salen de la API.
+Hay un schema para cada operación: crear, leer y actualizar. Pydantic
+valida automáticamente cada request; si algo no cumple las reglas,
+responde 422 sin llegar al service."
+
+Referencia rápida por clase (números actuales):
+- Líneas 12–21: `ProductoCategoriaCreate` / `ProductoCategoriaRead`
+- Líneas 36–42: `ProductoBase` (validaciones de campos)
+- Líneas 45–47: `ProductoCreate`
+- Líneas 50–57: `ProductoRead` (`from_attributes=True`)
+- Líneas 60–68: `ProductoUpdate` (campos opcionales + `exclude_unset` en el service)
+
+--------------------------------------------------------------------------------
+[1:58 – 2:22]  ENDPOINTS   `producto/router.py`   (★ Annotated + Query + Path)
+--------------------------------------------------------------------------------
+"El router define los 5 endpoints de productos. Su único trabajo es recibir
+el request, validarlo y delegarle la lógica al service. No sabe de SQL."
+
+Foco `listar_productos` (líneas 20–46):
+- Línea 20: `@router.get("", response_model=list[ProductoRead])`
+- Líneas 22–35: query params con `Annotated[..., Query(...)]`
+- Líneas 37–38: `with UnitOfWork()` + `service.list_productos(...)`
+
+Resto (rápido):
+- GET `/{producto_id}` líneas 49–57 — `Path(ge=1)`, 404 si no existe.
+- POST `/productos` (`@router.post("", ...)`, líneas 60–68) — 201;
+  `ValueError` -> 422, `IntegrityError` -> 409.
+- PUT `/{producto_id}` líneas 71–85 — mismo patrón + 404.
+- DELETE `/{producto_id}` líneas 88–95 — 204 sin body.
+
+--------------------------------------------------------------------------------
+[2:22 – 2:38]  SERVICE (LÓGICA)   `producto/service.py`
+--------------------------------------------------------------------------------
+"El service es donde vive la lógica de negocio: todo lo que Pydantic no
+puede validar y todo lo que el router no debería saber. Recibe el UoW,
+opera sobre los repos y devuelve el resultado."
+
+Ejemplo concreto — `_validate_categorias` (línea 74):
+"Cuando llega un POST con categorías, Pydantic ya validó el formato.
+Pero hay reglas que Pydantic no puede chequear: ¿el ID existe en la DB?
+¿viene duplicado en el payload? ¿hay más de una marcada como principal?
+Todo eso lo verifica esta función y lanza un ValueError si algo falla.
+El router lo captura y lo convierte en un 422 con el mensaje exacto."
+
+
+--------------------------------------------------------------------------------
+[2:38 – 2:53]  REPOSITORY   `producto/repository.py`
+--------------------------------------------------------------------------------
+"El repository arma las consultas SQLModel para traer un producto o listarlos,
+con relaciones y filtros. El service lo llama; acá no hay reglas de negocio."
+
+- Líneas 22–30: `_with_relations()` con `selectinload` -> evita el problema
+  de consultas "ene más uno" (N+1): una sola ida a la DB trae producto + links
+  + categorías/ingredientes.
+- Líneas 36–56: `list_with_relations` -> aplica filtros opcionales (`q`,
+  `disponible`, `precio_min`, `precio_max`) y al final `offset`, `limit`,
+  `order_by`.
+
+
+================================================================================
+BLOQUE 2 — FRONTEND: EXPERIENCIA DE USUARIO Y ESTADO      (~2:45 objetivo)
+================================================================================
+
+--------------------------------------------------------------------------------
+[3:00 – 3:18]  ESTRUCTURA Y ROUTING
+--------------------------------------------------------------------------------
+Mostrar el árbol `frontend/src/`:
+  app/         (queryClient.ts, router.tsx)
+  categorias/  (página + api + hooks + types + components/)
+  ingredientes/ (mismo patrón)
+  productos/   (mismo patrón, con página de detalle)
+  shared/components/ (Modal, Navbar)
+  lib/apiClient.ts
+
+"Una carpeta por feature. Cada feature tiene su tipo, su cliente de API y
+ sus hooks. Lo compartido va en `shared/` y `lib/`."
+► En corto: cada feature es autónoma; solo lo que usan todas va en shared/.
+
+Abrir `src/app/router.tsx` y señalar:
+- Líneas 9–21: `createBrowserRouter` y rutas hijas.
+- Línea 18: `{ path: 'productos/:id', element: <ProductoDetailPage /> }`
+  "Acá defino el parámetro dinámico `:id` que después leo con
+   `useParams()`."
+  ► En corto: `:id` es el segmento dinámico de la URL que el componente
+    lee con `useParams`.
+
+Abrir `src/app/queryClient.ts` y explicar:
+- `staleTime: 30_000` -> 30s sin refetch automático.
+  ► En corto: los datos se consideran frescos por 30 segundos.
+- `retry: 1` -> reintento una vez si falla.
+  ► En corto: si falla un request, lo reintenta una sola vez.
+
+
+--------------------------------------------------------------------------------
+[3:18 – 3:32]  CLIENTE HTTP   `src/lib/apiClient.ts`
+--------------------------------------------------------------------------------
+Abrir el archivo y explicar:
+
+1. Línea 1: `API_URL` desde `import.meta.env.VITE_API_URL` (fallback
+   `http://localhost:8000`).
+   ► En corto: la URL base viene de la variable de entorno de Vite.
+
+2. Líneas 5–30: `apiRequest<T>` genérico con `fetch`.
+   - Líneas 17–26: si `!res.ok`, parsea el `detail` que devuelve FastAPI
+     y lo tira como `Error`.
+     "Gracias a esto, en el frontend puedo mostrar el mensaje de error
+      EXACTO que viene de Pydantic (lo vamos a ver en la demo)."
+   - Línea 28: `if (res.status === 204) return undefined` -> para el DELETE.
+   ► En corto: wrapper de fetch que convierte el `detail` de FastAPI en un
+     Error de JS, y devuelve undefined si la respuesta es 204.
+
+3. Líneas 32–37: helpers `get/post/put/delete` tipados.
+   ► En corto: atajos tipados que llaman a `apiRequest` con el método correcto.
+
+
+--------------------------------------------------------------------------------
+[3:32 – 3:48]  TIPADO + COMPONENTE TIPADO (Props)
+--------------------------------------------------------------------------------
+
+Abrir `src/productos/productos.types.ts`. Señalar:
+- Líneas 4–7 y 9–12: `ProductoCategoria` / `ProductoIngrediente` (Read anidado).
+- Líneas 14–26: `Producto` -> el tipo del Read.
+- Líneas 38–47: `ProductoFormValues` -> lo que usa el formulario.
+- Líneas 49–56: `ProductoFilters` -> coincide con los query params del
+  backend (q, disponible, precio_min, precio_max, skip, limit).
+"El TS del frontend es el mirror del schema del backend."
+► En corto: los tipos del frontend replican exactamente los schemas del backend.
+
+Abrir `src/productos/components/ProductoModal.tsx`. Mostrar LA INTERFAZ:
+- Líneas 9–14:
+    interface ProductoModalProps {
+      open: boolean
+      initialValue?: Producto | null
+      onClose: () => void
+      onSubmit: (values: ProductoFormValues) => void
+    }
+"Las Props tipadas con `interface` y el componente funcional las recibe
+ destructuradas. Si `initialValue` está, es edición; si no, es alta."
+► En corto: `initialValue` decide si el modal es para crear o editar.
+
+
+--------------------------------------------------------------------------------
+[3:48 – 4:12]  SERVER STATE — useQuery + useMutation    (★)
+--------------------------------------------------------------------------------
+Abrir `src/categorias/useCategorias.ts` (el más prolijo de ver).
+
+1. Línea 6: `const LIST_KEY = ['categorias'] as const`
+   "La query key identifica la caché; uso la misma para invalidar."
+   ► En corto: clave única del caché; la misma que se usa para invalidarlo.
+
+2. Líneas 8–10: `useCategorias()`
+     useQuery({ queryKey: LIST_KEY, queryFn: categoriasApi.list })
+   "useQuery maneja el caching, el loading y el error por mí."
+   ► En corto: una línea da caching, loading y error automáticos.
+
+3. Líneas 12–21: `useCreateCategoria()`
+     useMutation({
+       mutationFn: (values) => categoriasApi.create(values),
+       onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY })
+     })
+   "En `onSuccess` invalido la lista -> TanStack Query hace refetch solo.
+    Con esto NO tengo que sincronizar estado a mano."
+   ► En corto: al crear con éxito, invalida el caché y la lista se
+     actualiza sola.
+
+4. Mostrar también `useUpdateCategoria` y `useDeleteCategoria` (mismo patrón).
+   ► En corto: misma estructura; solo cambia el método HTTP del `mutationFn`.
+
+
+Abrir `src/productos/useProductos.ts` y señalar la diferencia:
+- Línea 10: `queryKey: [LIST_KEY, filters ?? {}]`
+  "La clave incluye los filtros -> cada combinación (buscar, disponible, etc.)
+   tiene su propia caché."
+  ► En corto: filtros distintos = cachés distintas; no se pisan entre sí.
+- Líneas 15–21: `useProducto(id)` con `enabled: id !== undefined`
+  (mismo archivo; `queryKey` del detalle usa `'detail'` + `id`).
+  "No dispara el fetch hasta que tengo un id válido; útil para el detalle."
+  ► En corto: `enabled` evita fetchear si todavía no hay un id.
+
+
+--------------------------------------------------------------------------------
+[4:12 – 4:24]  PÁGINA LISTA   `CategoriasPage.tsx`  (uso de los hooks)
+--------------------------------------------------------------------------------
+Abrir y mostrar el flujo completo (es corto y didáctico):
+
+- `const { data, isLoading, isError } = useCategorias()`
+- `useCreateCategoria()`, `useUpdateCategoria()`, `useDeleteCategoria()`
+- Render:
+    * Botón "Nueva" -> abre modal en modo alta.
+    * Tabla con botones Editar/Borrar -> abren modal en modo edición o
+      disparan delete.
+    * `isLoading` -> "Cargando…"
+    * `isError` -> mensaje en rojo.
+
+"Este mismo patrón se repite en Ingredientes y Productos."
+► En corto: el componente solo orquesta hooks y UI; nada de fetch manual.
+
+
+--------------------------------------------------------------------------------
+[4:24 – 4:42]  NAVEGACIÓN DINÁMICA   `ProductoDetailPage.tsx`
+--------------------------------------------------------------------------------
+Abrir `src/productos/ProductoDetailPage.tsx`.
+
+1. Línea 1: `import { Link, useParams } from 'react-router-dom'`
+
+2. Líneas 6–8:
+     const { id } = useParams<{ id: string }>()
+     const productoId = id ? Number(id) : undefined
+     const { data: producto, isLoading, isError, error } = useProducto(productoId)
+   "El `:id` de la ruta llega como string; lo parseo a number."
+   ► En corto: `useParams` lee el segmento de la URL; hay que convertirlo
+     a number antes de usarlo.
+
+3. Líneas 82–94: cómo se renderiza la relación:
+     producto.categorias.map((c) => ... c.categoria.nombre ... c.es_principal)
+   "Acá veo el dato ANIDADO: el producto trae la lista de categorías con
+    `es_principal` para destacarlas."
+   ► En corto: itera las categorías anidadas y usa `es_principal` para
+     saber cuál destacar.
+
+4. Líneas 105–112: lo mismo con ingredientes (`es_removible`).
+   ► En corto: igual, pero con `es_removible` para saber qué se puede quitar.
+
+"Este es el tipo de pantalla que justifica todo el modelado relacional."
+
+
+================================================================================
+BLOQUE 3 — DEMO EN VIVO: FLUJO INTEGRADOR      (~3–4 min objetivo)
+================================================================================
+
+PREPARACIÓN ANTES DE ARRANCAR EL DEMO (no se narra):
+- DevTools > Network abierta, filtro "Fetch/XHR".
+- Terminal del backend visible en un split (para ver el SQL del `echo=True`).
+- pgAdmin/DBeaver con la tabla `productos` lista para refrescar.
+
+--------------------------------------------------------------------------------
+[4:42 – 4:54]  PASO 1: Crear una CATEGORÍA (seed para el producto)
+--------------------------------------------------------------------------------
+1. Ir a /categorias.
+2. Click "Nueva".
+3. Cargar nombre = "Pizzas".
+4. Mostrar en Network: POST http://localhost:8000/categorias -> 201.
+5. Mostrar en la terminal del backend: el INSERT SQL loggeado.
+6. Narrar: "La lista se refrescó sola gracias a `invalidateQueries`."
+
+--------------------------------------------------------------------------------
+[4:54 – 5:02]  PASO 2: Crear 2 INGREDIENTES
+--------------------------------------------------------------------------------
+1. Ir a /ingredientes -> "Nuevo".
+2. Cargar "Muzzarella" (es_alergeno = false).
+3. Cargar "Jamón" (es_alergeno = false).
+4. Mostrar 2 POST /ingredientes -> 201.
+
+--------------------------------------------------------------------------------
+[5:02 – 5:18]  PASO 3: Crear un PRODUCTO con relaciones
+--------------------------------------------------------------------------------
+1. Ir a /productos -> "Nuevo producto".
+2. Cargar:
+   - Nombre: "Pizza Muzza"
+   - Descripción: "Clásica de muzzarella"
+   - Precio base: 5500.00
+   - Stock: 10
+   - Imágenes (una URL por línea, pueden ser placeholders).
+   - Tildar Categoría "Pizzas" + "principal".
+   - Tildar Ingrediente "Muzzarella" + "Jamón" (marcar "Jamón" como removible).
+3. Guardar.
+4. Mostrar en Network: POST /productos -> 201, body con las listas
+   `categorias` e `ingredientes`.
+5. Mostrar en la terminal del backend: 3 INSERTS (productos +
+   producto_categoria + producto_ingrediente).
+
+NARRAR: "Fíjense que en UNA sola transacción (gracias al UoW) se crean las
+tres filas. Si cualquiera fallara, se hace rollback de todo."
+
+--------------------------------------------------------------------------------
+[5:18 – 5:28]  PASO 4: Ver el DETALLE (ruta dinámica /productos/:id)
+--------------------------------------------------------------------------------
+1. Click en "Ver" sobre la card del producto recién creado.
+2. La URL cambia a /productos/3 (o el id que toque).
+3. Mostrar que la pantalla muestra:
+   - La categoría "Pizzas" con la píldora destacada (principal).
+   - Los dos ingredientes, uno marcado "removible" y otro "obligatorio".
+4. Network: GET /productos/3 -> 200 con toda la data anidada.
+
+NARRAR: "Acá se ve la integración end-to-end: la FK en la DB se tradujo en
+un objeto anidado en el JSON, y React la pinta como píldoras y listas."
+
+--------------------------------------------------------------------------------
+[5:28 – 5:38]  PASO 5: EDITAR el producto
+--------------------------------------------------------------------------------
+1. Volver a /productos.
+2. Click "Editar".
+3. Cambiar precio a 6000, destildar "Jamón".
+4. Guardar.
+5. Network: PUT /productos/3.
+6. Terminal backend: mostrar UPDATE productos + DELETE producto_ingrediente
+   (porque el `_sync_ingrediente_links` calculó que sobraba).
+7. Refrescar detalle y mostrar que ahora solo está Muzzarella.
+
+--------------------------------------------------------------------------------
+[5:38 – 5:50]  PASO 6: VALIDACIONES (lo que pide el enunciado)
+--------------------------------------------------------------------------------
+Mostrar 3 errores a propósito para demostrar que ambos lados validan:
+
+1. Validación del FRONTEND (en el modal):
+   - Abrir "Nuevo producto", dejar nombre = "A" (1 letra) -> Guardar.
+   - Aparece el error en rojo dentro del modal:
+     "El nombre debe tener al menos 2 caracteres."
+   - NO hay request en Network. "Esto lo frené antes de pegarle al backend."
+
+2. Validación de PYDANTIC (422):
+   - En /docs (Swagger), probar POST /productos con
+     precio_base = -10 -> 422 con detail explicando `ge=0`.
+   - O mandarlo desde el modal poniendo -1 en Devtools si se animan.
+
+3. Validación de REGLA DE NEGOCIO (ValueError del service):
+   - En Swagger, POST /productos con dos categorías y AMBAS `es_principal=true`.
+   - Response 422 con detail: "Solo una categoria puede ser principal por
+     producto".
+   "Este mensaje lo arma mi service y lo levanta el router como HTTPException."
+
+--------------------------------------------------------------------------------
+[5:50 – 5:58]  PASO 7: BORRAR (soft delete)
+--------------------------------------------------------------------------------
+1. En /productos, click "Borrar" en la card.
+2. Confirmar en el `confirm()`.
+3. Network: DELETE /productos/3 -> 204.
+4. La card desaparece de la lista (invalidateQueries).
+5. Ir a pgAdmin y mostrar que la FILA SIGUE en la tabla `productos`, con
+   `deleted_at` poblado. "Soft delete: no pierdo datos."
+
+--------------------------------------------------------------------------------
+[5:58 – 6:12]  DESAFÍO TÉCNICO (evaluación: "Resolución de Problemas")
+--------------------------------------------------------------------------------
+Contar UNO de estos (elegir el que más te coma menos tiempo):
+
+OPCIÓN A — "DetachedInstanceError al serializar con response_model":
+  "Al principio, cuando el UoW hacía commit, los objetos del repo quedaban
+   'detached' de la session y FastAPI fallaba al serializarlos con el
+   response_model. Lo resolví pasando `expire_on_commit=False` al crear la
+   Session en `core/uow.py` (línea 30)."
+  ► En corto: después del commit los objetos perdían conexión con la sesión;
+    `expire_on_commit=False` los mantiene accesibles para serializar.
+
+OPCIÓN B — "Relaciones M:N con atributo extra":
+  "Una N:N pelada con `link_model=` no me dejaba guardar `es_principal` o
+   `es_removible`. La solución fue declarar `ProductoCategoria` y
+   `ProductoIngrediente` como modelos propios con `Relationship` en ambos
+   lados y moverlas al archivo `link_models.py` para evitar el import
+   circular entre Producto y Categoria."
+  ► En corto: la N:N simple no soporta campos extra; hay que modelar la
+    tabla del medio como entidad propia.
+
+OPCIÓN C — "Sincronización de links en el update":
+  "Al editar un producto no quería borrar todos los links y volver a
+   crearlos porque se rompían los timestamps de la relación. Hice una
+   función `_sync_*_links` que diffea lo deseado vs lo existente y hace
+   solo inserts/updates/deletes mínimos."
+  ► En corto: borrar y recrear todo perdía datos; el diff solo toca lo
+    que realmente cambió.
+
+--------------------------------------------------------------------------------
+[6:12 – 6:20]  CIERRE
+--------------------------------------------------------------------------------
+Recapitular en ~15–20 segundos:
+- Backend: FastAPI + SQLModel + Pydantic + UoW + repos, validaciones en
+  3 capas (Pydantic, DB CheckConstraint, reglas en service).
+- Frontend: React + TS + Tailwind + TanStack Query + react-router-dom.
+- Integración: todo contra Postgres real, sin mocks, con invalidación de
+  caché automática.
+
+"Gracias."
+
+
+================================================================================
+ANEXO — ATAJOS DE NAVEGACIÓN (para no perder tiempo en el video)
+================================================================================
+Tener fijados en el Explorer de la IDE los archivos en este orden exacto:
+
+  BACKEND
+    1) backend/app/main.py
+    2) backend/app/core/database.py
+    3) backend/app/core/uow.py
+    4) backend/app/modules/producto/model.py
+    5) backend/app/modules/producto/link_models.py
+    6) backend/app/modules/producto/schema.py
+    7) backend/app/modules/producto/router.py
+    8) backend/app/modules/producto/service.py
+    9) backend/app/modules/producto/repository.py
+
+  FRONTEND
+   10) frontend/src/app/router.tsx
+   11) frontend/src/lib/apiClient.ts
+   12) frontend/src/productos/productos.types.ts
+   13) frontend/src/categorias/useCategorias.ts
+   14) frontend/src/productos/useProductos.ts
+   15) frontend/src/productos/components/ProductoModal.tsx
+   16) frontend/src/productos/ProductoDetailPage.tsx
+
+
+================================================================================
+ANEXO — FRASES CLAVE DEL ENUNCIADO QUE HAY QUE DECIR (para puntuar claridad)
+================================================================================
+- "Relationship con back_populates" -> al mostrar producto/model.py.
+- "Annotated + Query + Path" -> al mostrar producto/router.py listar_productos.
+- "HTTPException y códigos de estado 404 / 409 / 422 / 204" -> en el router.
+- "response_model evita filtrar datos sensibles/innecesarios" -> en router.
+- "PostgreSQL / tablas en pgAdmin" -> en el cierre del bloque 1.
+- "useQuery para el listado y useMutation para el alta/edición" -> bloque 2.
+- "invalidateQueries tras cada mutación" -> bloque 2.
+- "parámetros dinámicos a través de la URL (useParams con :id)" -> bloque 2.
+- "Tailwind CSS utility-first" -> mencionarlo al pasar por el modal.
+- "Validaciones de Pydantic y mensajes en el frontend" -> bloque 3 paso 6.

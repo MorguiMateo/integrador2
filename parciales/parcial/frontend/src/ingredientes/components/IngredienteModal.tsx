@@ -63,7 +63,7 @@ export function IngredienteModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700" htmlFor="ingrediente-nombre">
+          <label className="text-sm font-medium" htmlFor="ingrediente-nombre">
             Nombre
           </label>
           <input
@@ -71,12 +71,12 @@ export function IngredienteModal({
             type="text"
             value={values.nombre}
             onChange={(e) => setValues((prev) => ({ ...prev, nombre: e.target.value }))}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="w-full border border-gray-300 px-3 py-2 text-sm"
             autoFocus
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700" htmlFor="ingrediente-descripcion">
+          <label className="text-sm font-medium" htmlFor="ingrediente-descripcion">
             Descripción
           </label>
           <textarea
@@ -85,16 +85,15 @@ export function IngredienteModal({
             onChange={(e) =>
               setValues((prev) => ({ ...prev, descripcion: e.target.value || null }))
             }
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="w-full border border-gray-300 px-3 py-2 text-sm"
             rows={3}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={values.es_alergeno}
             onChange={(e) => setValues((prev) => ({ ...prev, es_alergeno: e.target.checked }))}
-            className="h-4 w-4 rounded border-slate-300"
           />
           Es alérgeno
         </label>
@@ -103,13 +102,13 @@ export function IngredienteModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="border border-gray-400 px-4 py-2 text-sm"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="border border-blue-700 bg-blue-600 px-4 py-2 text-sm text-white"
           >
             Guardar
           </button>

@@ -18,13 +18,13 @@ export function ProductoDetailPage() {
       </h1>
 
       {isLoading && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        <div className="border border-gray-300 p-4 text-sm text-gray-500">
           Cargando…
         </div>
       )}
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="border border-red-400 p-4 text-sm text-red-700">
           Error al cargar producto: {error instanceof Error ? error.message : 'desconocido'}
         </div>
       )}
@@ -32,15 +32,15 @@ export function ProductoDetailPage() {
       {producto && (
         <div className="space-y-4">
           {producto.imagenes_url.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <h2 className="mb-2 text-sm font-semibold text-slate-700">Imágenes</h2>
+            <div className="border border-gray-300 p-4">
+              <h2 className="mb-2 text-sm font-semibold">Imágenes</h2>
               <div className="flex flex-wrap gap-3">
                 {producto.imagenes_url.map((url, idx) => (
                   <img
                     key={`${url}-${idx}`}
                     src={url}
                     alt={`${producto.nombre} ${idx + 1}`}
-                    className="h-32 w-32 rounded-md object-cover border border-slate-200"
+                    className="h-32 w-32 object-cover border border-gray-300"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}
@@ -51,41 +51,41 @@ export function ProductoDetailPage() {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-500">Descripción</p>
-              <p className="text-sm text-slate-800">{producto.descripcion ?? '—'}</p>
+            <div className="space-y-1 border border-gray-300 p-4">
+              <p className="text-xs uppercase text-gray-500">Descripción</p>
+              <p className="text-sm">{producto.descripcion ?? '—'}</p>
             </div>
-            <div className="grid grid-cols-3 gap-4 rounded-lg border border-slate-200 bg-white p-4">
+            <div className="grid grid-cols-3 gap-4 border border-gray-300 p-4">
               <div>
-                <p className="text-xs uppercase text-slate-500">Precio</p>
-                <p className="text-sm font-medium text-slate-900">${producto.precio_base}</p>
+                <p className="text-xs uppercase text-gray-500">Precio</p>
+                <p className="text-sm font-medium">${producto.precio_base}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-500">Stock</p>
-                <p className="text-sm font-medium text-slate-900">{producto.stock_cantidad}</p>
+                <p className="text-xs uppercase text-gray-500">Stock</p>
+                <p className="text-sm font-medium">{producto.stock_cantidad}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-500">Estado</p>
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-xs uppercase text-gray-500">Estado</p>
+                <p className="text-sm font-medium">
                   {producto.disponible ? 'Disponible' : 'No disponible'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-2 text-sm font-semibold text-slate-700">Categorías</h2>
+          <div className="border border-gray-300 p-4">
+            <h2 className="mb-2 text-sm font-semibold">Categorías</h2>
             {producto.categorias.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin categorías.</p>
+              <p className="text-sm text-gray-500">Sin categorías.</p>
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {producto.categorias.map((c) => (
                   <li
                     key={c.categoria.id}
-                    className={`rounded-full border px-3 py-1 text-xs ${
+                    className={`border px-3 py-1 text-xs ${
                       c.es_principal
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-300 bg-slate-50 text-slate-700'
+                        ? 'border-blue-700 bg-blue-600 text-white'
+                        : 'border-gray-400 text-gray-700'
                     }`}
                   >
                     {c.categoria.nombre}
@@ -96,16 +96,16 @@ export function ProductoDetailPage() {
             )}
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-2 text-sm font-semibold text-slate-700">Ingredientes</h2>
+          <div className="border border-gray-300 p-4">
+            <h2 className="mb-2 text-sm font-semibold">Ingredientes</h2>
             {producto.ingredientes.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin ingredientes.</p>
+              <p className="text-sm text-gray-500">Sin ingredientes.</p>
             ) : (
-              <ul className="divide-y divide-slate-200 text-sm">
+              <ul className="divide-y divide-gray-200 text-sm">
                 {producto.ingredientes.map((i) => (
                   <li key={i.ingrediente.id} className="flex items-center justify-between py-2">
-                    <span className="text-slate-800">{i.ingrediente.nombre}</span>
-                    <span className="text-xs text-slate-500">
+                    <span>{i.ingrediente.nombre}</span>
+                    <span className="text-xs text-gray-500">
                       {i.es_removible ? 'removible' : 'obligatorio'}
                     </span>
                   </li>

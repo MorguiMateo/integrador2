@@ -59,26 +59,26 @@ export function CategoriasPage() {
         <button
           type="button"
           onClick={openNew}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="border border-gray-400 bg-blue-600 px-4 py-2 text-sm text-white"
         >
           Nueva categoría
         </button>
       </header>
 
       {isLoading && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        <div className="border border-gray-300 p-4 text-sm text-gray-500">
           Cargando…
         </div>
       )}
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="border border-red-400 p-4 text-sm text-red-700">
           Error al cargar categorías: {error instanceof Error ? error.message : 'desconocido'}
         </div>
       )}
 
       {mutationError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="border border-red-400 p-4 text-sm text-red-700">
           Error al guardar: {mutationError instanceof Error ? mutationError.message : 'desconocido'}
         </div>
       )}

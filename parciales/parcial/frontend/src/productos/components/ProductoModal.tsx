@@ -159,7 +159,7 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Nombre */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700" htmlFor="producto-nombre">
+          <label className="text-sm font-medium" htmlFor="producto-nombre">
             Nombre
           </label>
           <input
@@ -167,14 +167,14 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
             type="text"
             value={values.nombre}
             onChange={(e) => setValues((prev) => ({ ...prev, nombre: e.target.value }))}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="w-full border border-gray-300 px-3 py-2 text-sm"
             autoFocus
           />
         </div>
 
         {/* Descripción */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700" htmlFor="producto-descripcion">
+          <label className="text-sm font-medium" htmlFor="producto-descripcion">
             Descripción
           </label>
           <textarea
@@ -183,7 +183,7 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
             onChange={(e) =>
               setValues((prev) => ({ ...prev, descripcion: e.target.value || null }))
             }
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="w-full border border-gray-300 px-3 py-2 text-sm"
             rows={2}
           />
         </div>
@@ -191,7 +191,7 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
         {/* Precio / Stock */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700" htmlFor="producto-precio">
+            <label className="text-sm font-medium" htmlFor="producto-precio">
               Precio base
             </label>
             <input
@@ -201,11 +201,11 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
               min="0"
               value={values.precio_base}
               onChange={(e) => setValues((prev) => ({ ...prev, precio_base: e.target.value }))}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700" htmlFor="producto-stock">
+            <label className="text-sm font-medium" htmlFor="producto-stock">
               Stock
             </label>
             <input
@@ -216,67 +216,62 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
               onChange={(e) =>
                 setValues((prev) => ({ ...prev, stock_cantidad: Number(e.target.value) || 0 }))
               }
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
         </div>
 
         {/* Imágenes */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700" htmlFor="producto-imagenes">
+          <label className="text-sm font-medium" htmlFor="producto-imagenes">
             Imágenes (una URL por línea)
           </label>
           <textarea
             id="producto-imagenes"
             value={imagenesText}
             onChange={(e) => setImagenesText(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="w-full border border-gray-300 px-3 py-2 text-sm"
             rows={2}
             placeholder="https://...&#10;https://..."
           />
         </div>
 
         {/* Disponible */}
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={values.disponible}
             onChange={(e) => setValues((prev) => ({ ...prev, disponible: e.target.checked }))}
-            className="h-4 w-4 rounded border-slate-300"
           />
           Disponible
         </label>
 
         {/* ── Categorías ── */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">Categorías</p>
+          <p className="text-sm font-medium">Categorías</p>
           {categorias.length === 0 ? (
-            <p className="text-xs text-slate-400">No hay categorías creadas aún.</p>
+            <p className="text-xs text-gray-400">No hay categorías creadas aún.</p>
           ) : (
-            <div className="max-h-36 overflow-y-auto rounded-md border border-slate-200 divide-y divide-slate-100">
+            <div className="max-h-36 overflow-y-auto border border-gray-300 divide-y divide-gray-200">
               {categorias.map((cat) => {
                 const checked = isCategoriaChecked(cat.id)
                 const entry = getCategoriaEntry(cat.id)
                 return (
                   <div key={cat.id} className="flex items-center justify-between px-3 py-2">
-                    {/* checkbox para seleccionar la categoría */}
-                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleCategoria(cat.id)}
-                        className="h-4 w-4 rounded border-slate-300"
                       />
                       {cat.nombre}
                     </label>
-                    {/* toggle es_principal, solo visible si está seleccionada */}
                     {checked && (
-                      <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={entry?.es_principal ?? false}
                           onChange={() => toggleEsPrincipal(cat.id)}
-                          className="h-3.5 w-3.5 rounded border-slate-300"
                         />
                         principal
                       </label>
@@ -290,39 +285,35 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
 
         {/* ── Ingredientes ── */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">Ingredientes</p>
+          <p className="text-sm font-medium">Ingredientes</p>
           {ingredientes.length === 0 ? (
-            <p className="text-xs text-slate-400">No hay ingredientes creados aún.</p>
+            <p className="text-xs text-gray-400">No hay ingredientes creados aún.</p>
           ) : (
-            <div className="max-h-36 overflow-y-auto rounded-md border border-slate-200 divide-y divide-slate-100">
+            <div className="max-h-36 overflow-y-auto border border-gray-300 divide-y divide-gray-200">
               {ingredientes.map((ing) => {
                 const checked = isIngredienteChecked(ing.id)
                 const entry = getIngredienteEntry(ing.id)
                 return (
                   <div key={ing.id} className="flex items-center justify-between px-3 py-2">
-                    {/* checkbox para seleccionar el ingrediente */}
-                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleIngrediente(ing.id)}
-                        className="h-4 w-4 rounded border-slate-300"
                       />
                       <span>
                         {ing.nombre}
                         {ing.es_alergeno && (
-                          <span className="ml-1 text-xs text-amber-600">(alérgeno)</span>
+                          <span className="ml-1 text-xs text-orange-600">(alérgeno)</span>
                         )}
                       </span>
                     </label>
-                    {/* toggle es_removible, solo visible si está seleccionado */}
                     {checked && (
-                      <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={entry?.es_removible ?? false}
                           onChange={() => toggleEsRemovible(ing.id)}
-                          className="h-3.5 w-3.5 rounded border-slate-300"
                         />
                         removible
                       </label>
@@ -340,13 +331,13 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="border border-gray-400 px-4 py-2 text-sm"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="border border-blue-700 bg-blue-600 px-4 py-2 text-sm text-white"
           >
             Guardar
           </button>

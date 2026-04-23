@@ -17,11 +17,9 @@ export function Navbar() {
               <NavLink
                 to={link.to}
                 className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`
+                  isActive
+                    ? 'px-3 py-1.5 text-sm font-medium underline'
+                    : 'px-3 py-1.5 text-sm text-gray-700'
                 }
               >
                 {link.label}

@@ -31,6 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#Cada módulo expone su router y acá los monto en la app.
 app.include_router(categoria_router)
 app.include_router(ingrediente_router)
 app.include_router(producto_router)

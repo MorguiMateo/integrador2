@@ -5,11 +5,13 @@ from sqlmodel import SQLModel, Session, create_engine
 
 load_dotenv()
 
+#DATABASE_URL viene del archivo .env; si no existe, usa postgres local por defecto.
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://postgres@localhost:5432/parcial",
 )
 
+#echo=True loguea el SQL en consola;
 engine = create_engine(DATABASE_URL, echo=True)
 
 

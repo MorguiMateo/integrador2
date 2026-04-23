@@ -19,15 +19,14 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
   const next = () => setImageIndex((i) => (i + 1) % total)
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-square w-full bg-slate-100">
+    <article className="flex flex-col border border-gray-300">
+      <div className="relative w-full bg-gray-100" style={{ aspectRatio: '1' }}>
         {total > 0 ? (
           <>
             <img
               src={imagenes[imageIndex]}
               alt={`${producto.nombre} ${imageIndex + 1}`}
               className="h-full w-full object-cover"
-              // Si una URL rompe, no dejamos el ícono roto: saltamos a la siguiente si hay más
               onError={(e) => {
                 if (total > 1) {
                   next()
@@ -42,7 +41,7 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
                   type="button"
                   onClick={prev}
                   aria-label="Imagen anterior"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 px-2 py-1 text-slate-700 shadow hover:bg-white"
+                  className="absolute left-1 top-1/2 -translate-y-1/2 border border-gray-400 bg-white px-2 py-0.5 text-sm"
                 >
                   ‹
                 </button>
@@ -50,63 +49,57 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
                   type="button"
                   onClick={next}
                   aria-label="Imagen siguiente"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 px-2 py-1 text-slate-700 shadow hover:bg-white"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 border border-gray-400 bg-white px-2 py-0.5 text-sm"
                 >
                   ›
                 </button>
-                <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
+                <span className="absolute bottom-1 right-1 bg-white border border-gray-300 px-1.5 text-xs">
                   {imageIndex + 1} / {total}
                 </span>
               </>
             )}
           </>
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
+          <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
             sin imagen
           </div>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <Link
             to={`/productos/${producto.id}`}
-            className="text-base font-semibold text-slate-900 hover:underline"
+            className="text-base font-semibold underline"
           >
             {producto.nombre}
           </Link>
-          <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-              producto.disponible
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-slate-200 text-slate-600'
-            }`}
-          >
+          <span className="shrink-0 text-xs text-gray-600">
             {producto.disponible ? 'Disponible' : 'No disponible'}
           </span>
         </div>
 
         {producto.descripcion && (
-          <p className="line-clamp-2 text-sm text-slate-600">{producto.descripcion}</p>
+          <p className="text-sm text-gray-600">{producto.descripcion}</p>
         )}
 
         <div className="mt-auto flex items-center justify-between pt-2 text-sm">
-          <span className="font-semibold text-slate-900">${producto.precio_base}</span>
-          <span className="text-xs text-slate-500">Stock: {producto.stock_cantidad}</span>
+          <span className="font-semibold">${producto.precio_base}</span>
+          <span className="text-xs text-gray-500">Stock: {producto.stock_cantidad}</span>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={() => onEdit(producto)}
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="border border-gray-400 px-3 py-1 text-xs"
           >
             Editar
           </button>
           <button
             type="button"
             onClick={() => onDelete(producto)}
-            className="rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+            className="border border-red-400 px-3 py-1 text-xs text-red-600"
           >
             Borrar
           </button>

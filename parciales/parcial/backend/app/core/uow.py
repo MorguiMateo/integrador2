@@ -1,13 +1,8 @@
-"""Unit of Work sobre SQLModel Session.
-
-El UoW agrupa cambios en una transacción y decide si hacer commit o rollback
-al salir del contexto. Además expone los repositorios por módulo, de modo
-que los services no toquen `session` directamente:
-
-    with UnitOfWork() as uow:
-        categoria = uow.categorias.get(1)
-        ...
-"""
+# UnitOfWork envuelve cada request en una sola transacción de DB.
+# Al entrar al `with` abre la session y crea los repos.
+# Al salir hace commit si todo salió bien, o rollback si hubo cualquier error.
+# Los services usan uow.categorias / uow.ingredientes / uow.productos
+# sin tocar la session directamente.
 from __future__ import annotations
 
 from types import TracebackType
@@ -44,6 +39,8 @@ class UnitOfWork:
         exc: Optional[BaseException],
         tb: Optional[TracebackType],
     ) -> None:
+        # Si no hubo excepción -> commit; si hubo cualquier error -> rollback.
+        # La session siempre se cierra en el finally, sin importar qué pasó.
         try:
             if exc_type is None:
                 self.session.commit()

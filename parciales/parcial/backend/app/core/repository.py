@@ -1,14 +1,8 @@
-"""Base Repository genérico.
-
-Un Repository encapsula el acceso a datos de UNA entidad. Los services reciben
-el repo desde el UoW y no tocan `session` directamente.
-
-Asunciones del Base:
-- La entidad tiene columna `deleted_at` (soft-delete). `get`, `soft_delete` y
-  `base_stmt` filtran por `deleted_at IS NULL`.
-- Si una entidad no tiene `deleted_at`, el subtipo puede sobreescribir estos
-  métodos o simplemente no usarlos.
-"""
+# BaseRepository es la única pieza que habla con la base de datos.
+# Los services le piden datos a él; nunca tocan la session directamente.
+# Está diseñado para una sola entidad (ModelT) y aplica soft delete en todas
+# las consultas: los registros borrados no desaparecen de la DB, solo tienen
+# deleted_at poblado, lo que preserva la integridad de las relaciones.
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -27,6 +21,8 @@ class BaseRepository(Generic[ModelT]):
         self.session = session
 
     def base_stmt(self) -> SelectOfScalar[ModelT]:
+        # Punto de partida de todas las queries: filtra deleted_at IS NULL
+        # para que los registros con soft delete nunca aparezcan en resultados.
         return select(self.model).where(self.model.deleted_at == None)  # noqa: E711
 
     def get(self, id: int) -> ModelT | None:
@@ -36,13 +32,15 @@ class BaseRepository(Generic[ModelT]):
         return obj
 
     def save(self, obj: ModelT) -> ModelT:
-        """Persistir cambios de una instancia (create o update)."""
+        #Persistir cambios de una instancia (create o update)
         self.session.add(obj)
         self.session.flush()
         self.session.refresh(obj)
         return obj
 
     def soft_delete(self, id: int) -> bool:
+        # No elimina la fila; pone deleted_at = now(). La fila sigue en la DB,
+        # esto evita romper FKs que apuntan a este registro.
         obj = self.session.get(self.model, id)
         if obj is None or getattr(obj, "deleted_at", None) is not None:
             return False
@@ -52,7 +50,7 @@ class BaseRepository(Generic[ModelT]):
         return True
 
     def active_ids(self, ids: list[int]) -> set[int]:
-        """Devuelve el subconjunto de `ids` que existe y está activo."""
+        #Devuelve el subconjunto de `ids` que existe y no está borrado
         if not ids:
             return set()
         stmt = select(self.model.id).where(
