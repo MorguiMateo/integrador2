@@ -1,35 +1,3 @@
-================================================================================
-GUÍA DEL VIDEO — PARCIAL INTEGRADOR (FASTAPI + REACT)
-Duración orientativa: ~10–12 min. Máximo permitido por consigna: 15 min.
-Estructura: 3 bloques + demo (los tiempos son guía, no obligatorios al segundo).
-================================================================================
-
-CRITERIO DE SELECCIÓN DE MÓDULOS
-- Backend a exponer EN PROFUNDIDAD: módulo `producto` (tuyo).
-  Se muestra de pasada el modelo de `categoria` e `ingrediente` SOLO para
-  justificar las relaciones (back_populates) y la tabla-enlace.
-- Frontend a exponer:
-    * Módulo "simple" (para mostrar useQuery/useMutation limpios):
-      `categorias` -> components/CategoriaModal.tsx + useCategorias.ts.
-    * Módulo "relacionado" (para mostrar routing dinámico + datos anidados):
-      `productos` -> ProductosPage.tsx + ProductoDetailPage.tsx.
-- Demo en vivo: se hace TODO con `productos` porque cubre relaciones,
-  validaciones y navegación dinámica (/productos/:id).
-
-================================================================================
-ANTES DE GRABAR — CHECKLIST DE SETUP (NO SE FILMA)
-================================================================================
-1. Postgres corriendo y la DB `parcial` creada.
-2. Terminal A -> backend: `cd backend && uvicorn app.main:app --reload`
-   - Debe aparecer: "Uvicorn running on http://127.0.0.1:8000"
-   - Tener abierto /docs en una pestaña para mostrar Swagger si hace falta.
-3. Terminal B -> frontend: `cd frontend && pnpm run dev`
-   - Debe quedar en http://localhost:5173 (o 5174).
-4. DevTools del navegador abiertas en la pestaña Network (filtrar por "Fetch/XHR").
-5. pgAdmin/DBeaver conectados a la DB `parcial` con las 5 tablas visibles:
-   categorias, ingredientes, productos, producto_categoria, producto_ingrediente.
-6. Tener 1 categoría y 2 ingredientes precargados (para la demo del producto).
-
 
 ================================================================================
 BLOQUE 1 — BACKEND: EL CORAZÓN DE LA API      (~3 min objetivo)
