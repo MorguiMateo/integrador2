@@ -31,6 +31,7 @@ class ProductoIngrediente(SQLModel, table=True):
 
     producto_id: int = Field(foreign_key="productos.id", primary_key=True)
     ingrediente_id: int = Field(foreign_key="ingredientes.id", primary_key=True)
+    #Mismo esquema, con la diferencia de es_removible.
     es_removible: bool = Field(default=False, nullable=False)
 
     producto: Producto = Relationship(back_populates="ingrediente_links")

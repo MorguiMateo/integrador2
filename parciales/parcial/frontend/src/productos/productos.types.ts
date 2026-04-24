@@ -21,6 +21,8 @@ export interface Producto {
   disponible: boolean
   created_at: string
   updated_at: string
+  deleted_at?: string | null
+  eliminado?: boolean
   categorias: ProductoCategoria[]
   ingredientes: ProductoIngrediente[]
 }
@@ -53,4 +55,5 @@ export interface ProductoFilters {
   precio_max?: number
   skip?: number
   limit?: number
+  incluir_eliminados?: boolean
 }

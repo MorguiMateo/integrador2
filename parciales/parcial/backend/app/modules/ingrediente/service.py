@@ -12,9 +12,14 @@ def list_ingredientes(
     limit: int = 50,
     nombre: str | None = None,
     es_alergeno: bool | None = None,
+    incluir_eliminados: bool = False,
 ) -> list[Ingrediente]:
     return uow.ingredientes.list(
-        skip=skip, limit=limit, nombre=nombre, es_alergeno=es_alergeno
+        skip=skip,
+        limit=limit,
+        nombre=nombre,
+        es_alergeno=es_alergeno,
+        incluir_eliminados=incluir_eliminados,
     )
 
 

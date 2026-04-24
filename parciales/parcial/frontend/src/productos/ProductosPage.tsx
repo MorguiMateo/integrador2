@@ -17,7 +17,7 @@ export function ProductosPage() {
   const [soloDisponibles, setSoloDisponibles] = useState(false)
 
   const filters = useMemo<ProductoFilters>(() => {
-    const f: ProductoFilters = {}
+    const f: ProductoFilters = { incluir_eliminados: true }
     if (search.trim()) f.q = search.trim()
     if (soloDisponibles) f.disponible = true
     return f
@@ -36,6 +36,7 @@ export function ProductosPage() {
   }
 
   const openEdit = (producto: Producto) => {
+    if (producto.eliminado) return
     setEditing(producto)
     setModalOpen(true)
   }
@@ -54,7 +55,8 @@ export function ProductosPage() {
   }
 
   const handleDelete = (producto: Producto) => {
-    if (!confirm(`¿Borrar el producto "${producto.nombre}"?`)) return
+    if (producto.eliminado) return
+    if (!confirm(`¿Desactivar el producto "${producto.nombre}"? (soft delete)`)) return
     deleteMutation.mutate(producto.id)
   }
 

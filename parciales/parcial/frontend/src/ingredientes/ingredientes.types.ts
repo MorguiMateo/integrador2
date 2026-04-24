@@ -5,6 +5,8 @@ export interface Ingrediente {
   es_alergeno: boolean
   created_at: string
   updated_at: string
+  deleted_at?: string | null
+  eliminado?: boolean
 }
 
 export interface IngredienteFormValues {

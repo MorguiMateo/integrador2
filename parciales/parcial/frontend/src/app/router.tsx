@@ -15,6 +15,7 @@ export const router = createBrowserRouter([
       { path: 'categorias', element: <CategoriasPage /> },
       { path: 'ingredientes', element: <IngredientesPage /> },
       { path: 'productos', element: <ProductosPage /> },
+      //"Acá defino el parámetro id que después leo con useParams()"
       { path: 'productos/:id', element: <ProductoDetailPage /> },
     ],
   },

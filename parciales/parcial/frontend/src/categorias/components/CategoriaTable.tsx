@@ -27,8 +27,13 @@ export function CategoriaTable({ items, onEdit, onDelete }: CategoriaTableProps)
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {items.map((categoria) => (
-            <tr key={categoria.id}>
+          {items.map((categoria) => {
+            const inactiva = Boolean(categoria.eliminado)
+            return (
+            <tr
+              key={categoria.id}
+              className={inactiva ? 'bg-gray-50 text-gray-500 opacity-80' : ''}
+            >
               <td className="px-4 py-2">
                 {categoria.imagen_url ? (
                   <img
@@ -45,28 +50,38 @@ export function CategoriaTable({ items, onEdit, onDelete }: CategoriaTableProps)
                   </div>
                 )}
               </td>
-              <td className="px-4 py-2 font-medium">{categoria.nombre}</td>
+              <td className="px-4 py-2 font-medium">
+                {categoria.nombre}
+                {inactiva && (
+                  <span className="ml-2 rounded border border-gray-400 px-1.5 py-0.5 text-[10px] uppercase text-gray-600">
+                    Desactivada
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-2 text-gray-600">{categoria.descripcion ?? '—'}</td>
               <td className="px-4 py-2 text-right">
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => onEdit(categoria)}
-                    className="border border-gray-400 px-3 py-1 text-xs"
+                    disabled={inactiva}
+                    className="border border-gray-400 px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
                     onClick={() => onDelete(categoria)}
-                    className="border border-red-400 px-3 py-1 text-xs text-red-600"
+                    disabled={inactiva}
+                    className="border border-red-400 px-3 py-1 text-xs text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Borrar
+                    {inactiva ? 'Desactivada' : 'Desactivar'}
                   </button>
                 </div>
               </td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>

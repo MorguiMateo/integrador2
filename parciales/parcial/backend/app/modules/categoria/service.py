@@ -11,8 +11,11 @@ def list_categorias(
     skip: int = 0,
     limit: int = 50,
     nombre: str | None = None,
+    incluir_eliminados: bool = False,
 ) -> list[Categoria]:
-    return uow.categorias.list(skip=skip, limit=limit, nombre=nombre)
+    return uow.categorias.list(
+        skip=skip, limit=limit, nombre=nombre, incluir_eliminados=incluir_eliminados
+    )
 
 
 def get_categoria(uow: UnitOfWork, categoria_id: int) -> Categoria | None:

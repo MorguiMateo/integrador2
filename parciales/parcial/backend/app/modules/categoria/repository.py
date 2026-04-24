@@ -13,8 +13,9 @@ class CategoriaRepository(BaseRepository[Categoria]):
         skip: int = 0,
         limit: int = 50,
         nombre: str | None = None,
+        incluir_eliminados: bool = False,
     ) -> list[Categoria]:
-        stmt = self.base_stmt()
+        stmt = self.base_stmt(include_deleted=incluir_eliminados)
         if nombre:
             stmt = stmt.where(Categoria.nombre.ilike(f"%{nombre}%"))
         stmt = stmt.offset(skip).limit(limit).order_by(Categoria.id)

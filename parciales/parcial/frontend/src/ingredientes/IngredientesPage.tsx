@@ -14,7 +14,7 @@ export function IngredientesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Ingrediente | null>(null)
 
-  const { data, isLoading, isError, error } = useIngredientes()
+  const { data, isLoading, isError, error } = useIngredientes({ incluirEliminados: true })
   const createMutation = useCreateIngrediente()
   const updateMutation = useUpdateIngrediente()
   const deleteMutation = useDeleteIngrediente()
@@ -27,6 +27,7 @@ export function IngredientesPage() {
   }
 
   const openEdit = (ingrediente: Ingrediente) => {
+    if (ingrediente.eliminado) return
     setEditing(ingrediente)
     setModalOpen(true)
   }
@@ -45,7 +46,8 @@ export function IngredientesPage() {
   }
 
   const handleDelete = (ingrediente: Ingrediente) => {
-    if (!confirm(`¿Borrar el ingrediente "${ingrediente.nombre}"?`)) return
+    if (ingrediente.eliminado) return
+    if (!confirm(`¿Desactivar el ingrediente "${ingrediente.nombre}"? (soft delete)`)) return
     deleteMutation.mutate(ingrediente.id)
   }
 

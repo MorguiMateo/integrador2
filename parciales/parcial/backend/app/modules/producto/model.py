@@ -43,7 +43,7 @@ class Producto(SQLModel, table=True):
     )
     updated_at: datetime = Field(
         sa_column=Column(
-            DateTime(timezone=True),
+            DateTime(timezone=True),   
             nullable=False,
             server_default=func.now(),
             onupdate=func.now(),

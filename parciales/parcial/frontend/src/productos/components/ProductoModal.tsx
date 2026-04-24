@@ -6,6 +6,7 @@ import { Modal } from '../../shared/components/Modal'
 import { useCategorias } from '../../categorias/useCategorias'
 import { useIngredientes } from '../../ingredientes/useIngredientes'
 
+//tipado de las props de la modal de un producto
 interface ProductoModalProps {
   open: boolean
   initialValue?: Producto | null
@@ -51,8 +52,8 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
   )
   const [error, setError] = useState<string | null>(null)
 
-  const { data: categorias = [] } = useCategorias()
-  const { data: ingredientes = [] } = useIngredientes()
+  const { data: categorias = [] } = useCategorias({ incluirEliminados: true })
+  const { data: ingredientes = [] } = useIngredientes({ incluirEliminados: true })
 
   useEffect(() => {
     if (open) {
@@ -63,7 +64,7 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
     }
   }, [open, initialValue])
 
-  // ── helpers para la sección de categorías ──────────────────────────────────
+
 
   function isCategoriaChecked(id: number) {
     return values.categorias.some((c) => c.categoria_id === id)
@@ -92,7 +93,6 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
     }))
   }
 
-  // ── helpers para la sección de ingredientes ────────────────────────────────
 
   function isIngredienteChecked(id: number) {
     return values.ingredientes.some((i) => i.ingrediente_id === id)
@@ -124,7 +124,6 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
     }))
   }
 
-  // ── submit ─────────────────────────────────────────────────────────────────
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -256,21 +255,33 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
               {categorias.map((cat) => {
                 const checked = isCategoriaChecked(cat.id)
                 const entry = getCategoriaEntry(cat.id)
+                const catInactiva = Boolean(cat.eliminado)
+                const checkboxBloqueado = catInactiva && !checked
                 return (
-                  <div key={cat.id} className="flex items-center justify-between px-3 py-2">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <div
+                    key={cat.id}
+                    className={`flex items-center justify-between px-3 py-2 ${catInactiva ? 'bg-gray-50 text-gray-600' : ''}`}
+                  >
+                    <label
+                      className={`flex items-center gap-2 text-sm ${checkboxBloqueado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
+                        disabled={checkboxBloqueado}
                         onChange={() => toggleCategoria(cat.id)}
                       />
                       {cat.nombre}
+                      {catInactiva && (
+                        <span className="text-[10px] uppercase text-gray-500">desactivada</span>
+                      )}
                     </label>
                     {checked && (
                       <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={entry?.es_principal ?? false}
+                          disabled={catInactiva}
                           onChange={() => toggleEsPrincipal(cat.id)}
                         />
                         principal
@@ -293,18 +304,31 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
               {ingredientes.map((ing) => {
                 const checked = isIngredienteChecked(ing.id)
                 const entry = getIngredienteEntry(ing.id)
+                const ingInactivo = Boolean(ing.eliminado)
+                const checkboxBloqueado = ingInactivo && !checked
                 return (
-                  <div key={ing.id} className="flex items-center justify-between px-3 py-2">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <div
+                    key={ing.id}
+                    className={`flex items-center justify-between px-3 py-2 ${ingInactivo ? 'bg-gray-50 text-gray-600' : ''}`}
+                  >
+                    <label
+                      className={`flex items-center gap-2 text-sm ${checkboxBloqueado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
+                        disabled={checkboxBloqueado}
                         onChange={() => toggleIngrediente(ing.id)}
                       />
                       <span>
                         {ing.nombre}
                         {ing.es_alergeno && (
                           <span className="ml-1 text-xs text-orange-600">(alérgeno)</span>
+                        )}
+                        {ingInactivo && (
+                          <span className="ml-1 text-[10px] uppercase text-gray-500">
+                            desactivado
+                          </span>
                         )}
                       </span>
                     </label>
@@ -313,6 +337,7 @@ export function ProductoModal({ open, initialValue, onClose, onSubmit }: Product
                         <input
                           type="checkbox"
                           checked={entry?.es_removible ?? false}
+                          disabled={ingInactivo}
                           onChange={() => toggleEsRemovible(ing.id)}
                         />
                         removible

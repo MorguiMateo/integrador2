@@ -17,12 +17,10 @@ def _to_read_dict(producto: Producto) -> dict:
     categorias = [
         {"categoria": link.categoria, "es_principal": link.es_principal}
         for link in producto.categoria_links
-        if link.categoria.deleted_at is None
     ]
     ingredientes = [
         {"ingrediente": link.ingrediente, "es_removible": link.es_removible}
         for link in producto.ingrediente_links
-        if link.ingrediente.deleted_at is None
     ]
     return {
         "id": producto.id,
@@ -34,6 +32,7 @@ def _to_read_dict(producto: Producto) -> dict:
         "disponible": producto.disponible,
         "created_at": producto.created_at,
         "updated_at": producto.updated_at,
+        "deleted_at": producto.deleted_at,
         "categorias": categorias,
         "ingredientes": ingredientes,
     }
@@ -48,6 +47,7 @@ def list_productos(
     disponible: bool | None = None,
     precio_min: Decimal | None = None,
     precio_max: Decimal | None = None,
+    incluir_eliminados: bool = False,
 ) -> list[dict]:
     productos = uow.productos.list_with_relations(
         skip=skip,
@@ -56,6 +56,7 @@ def list_productos(
         disponible=disponible,
         precio_min=precio_min,
         precio_max=precio_max,
+        incluir_eliminados=incluir_eliminados,
     )
     return [_to_read_dict(p) for p in productos]
 
@@ -68,7 +69,10 @@ def get_producto(uow: UnitOfWork, producto_id: int) -> dict | None:
 
 
 def _validate_categorias(
-    uow: UnitOfWork, items: list[ProductoCategoriaCreate]
+    uow: UnitOfWork,
+    items: list[ProductoCategoriaCreate],
+    *,
+    producto_id: int | None = None,
 ) -> None:
     if not items:
         return
@@ -79,13 +83,22 @@ def _validate_categorias(
     if principales > 1:
         raise ValueError("Solo una categoria puede ser principal por producto")
     found = uow.categorias.active_ids(ids)
-    missing = set(ids) - found
+    allowed = set(found)
+    if producto_id is not None:
+        existing = {
+            link.categoria_id for link in uow.productos.categoria_links(producto_id)
+        }
+        allowed |= existing.intersection(set(ids))
+    missing = set(ids) - allowed
     if missing:
         raise ValueError(f"Categorias no encontradas o inactivas: {sorted(missing)}")
 
 
 def _validate_ingredientes(
-    uow: UnitOfWork, items: list[ProductoIngredienteCreate]
+    uow: UnitOfWork,
+    items: list[ProductoIngredienteCreate],
+    *,
+    producto_id: int | None = None,
 ) -> None:
     if not items:
         return
@@ -93,7 +106,13 @@ def _validate_ingredientes(
     if len(ids) != len(set(ids)):
         raise ValueError("Ingredientes duplicados en el payload")
     found = uow.ingredientes.active_ids(ids)
-    missing = set(ids) - found
+    allowed = set(found)
+    if producto_id is not None:
+        existing = {
+            link.ingrediente_id for link in uow.productos.ingrediente_links(producto_id)
+        }
+        allowed |= existing.intersection(set(ids))
+    missing = set(ids) - allowed
     if missing:
         raise ValueError(f"Ingredientes no encontrados o inactivos: {sorted(missing)}")
 
@@ -101,7 +120,7 @@ def _validate_ingredientes(
 def _sync_categoria_links(
     uow: UnitOfWork, producto_id: int, desired: list[ProductoCategoriaCreate]
 ) -> None:
-    _validate_categorias(uow, desired)
+    _validate_categorias(uow, desired, producto_id=producto_id)
     desired_by_cat: dict[int, ProductoCategoriaCreate] = {
         item.categoria_id: item for item in desired
     }
@@ -132,7 +151,7 @@ def _sync_categoria_links(
 def _sync_ingrediente_links(
     uow: UnitOfWork, producto_id: int, desired: list[ProductoIngredienteCreate]
 ) -> None:
-    _validate_ingredientes(uow, desired)
+    _validate_ingredientes(uow, desired, producto_id=producto_id)
     desired_by_ing: dict[int, ProductoIngredienteCreate] = {
         item.ingrediente_id: item for item in desired
     }

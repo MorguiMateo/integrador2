@@ -16,16 +16,26 @@ from app.modules.categoria.schema import (
 router = APIRouter(prefix="/categorias", tags=["categorias"])
 
 
-@router.get("", response_model=list[CategoriaRead])  # response_model oculta deleted_at y campos internos
+@router.get("", response_model=list[CategoriaRead])
 def listar_categorias(
     skip: Annotated[int, Query(ge=0, description="Registros a saltar")] = 0,  # ge=0: no negativos
     limit: Annotated[int, Query(ge=1, le=100, description="Máximo por página")] = 50,  # le=100: evita traer miles de filas
     nombre: Annotated[
         str | None, Query(max_length=100, description="Filtro parcial por nombre")
     ] = None,
+    incluir_eliminados: Annotated[
+        bool,
+        Query(description="Si true, incluye filas con soft-delete (eliminado=true)"),
+    ] = False,
 ):
     with UnitOfWork() as uow:
-        return service.list_categorias(uow, skip=skip, limit=limit, nombre=nombre)
+        return service.list_categorias(
+            uow,
+            skip=skip,
+            limit=limit,
+            nombre=nombre,
+            incluir_eliminados=incluir_eliminados,
+        )
 
 
 @router.get("/{categoria_id}", response_model=CategoriaRead)

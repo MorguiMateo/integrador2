@@ -11,9 +11,9 @@ function toQueryString(filters?: ProductoFilters): string {
   if (!filters) return ''
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== null && value !== '') {
-      params.append(key, String(value))
-    }
+    if (value === undefined || value === null || value === '') continue
+    if (key === 'incluir_eliminados' && value === false) continue
+    params.append(key, String(value))
   }
   const qs = params.toString()
   return qs ? `?${qs}` : ''

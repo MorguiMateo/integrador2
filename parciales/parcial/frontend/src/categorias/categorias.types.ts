@@ -6,6 +6,8 @@ export interface Categoria {
   imagen_url: string | null
   created_at: string
   updated_at: string
+  deleted_at?: string | null
+  eliminado?: boolean
 }
 
 export interface CategoriaFormValues {

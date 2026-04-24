@@ -19,8 +19,8 @@ class ProductoRepository(BaseRepository[Producto]):
 
     model = Producto
 
-    def _with_relations(self):
-        return self.base_stmt().options(
+    def _with_relations(self, *, include_deleted: bool = False):
+        return self.base_stmt(include_deleted=include_deleted).options(
             selectinload(Producto.categoria_links).selectinload(
                 ProductoCategoria.categoria
             ),
@@ -30,7 +30,7 @@ class ProductoRepository(BaseRepository[Producto]):
         )
 
     def get_with_relations(self, producto_id: int) -> Producto | None:
-        stmt = self._with_relations().where(Producto.id == producto_id)
+        stmt = self._with_relations(include_deleted=True).where(Producto.id == producto_id)
         return self.session.exec(stmt).first()
 
     def list_with_relations(
@@ -42,8 +42,9 @@ class ProductoRepository(BaseRepository[Producto]):
         disponible: bool | None = None,
         precio_min: Decimal | None = None,
         precio_max: Decimal | None = None,
+        incluir_eliminados: bool = False,
     ) -> list[Producto]:
-        stmt = self._with_relations()
+        stmt = self._with_relations(include_deleted=incluir_eliminados)
         if q:
             stmt = stmt.where(Producto.nombre.ilike(f"%{q}%"))
         if disponible is not None:

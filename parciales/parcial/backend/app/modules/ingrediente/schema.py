@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class IngredienteBase(BaseModel):
@@ -25,5 +25,11 @@ class IngredienteRead(IngredienteBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def eliminado(self) -> bool:
+        return self.deleted_at is not None

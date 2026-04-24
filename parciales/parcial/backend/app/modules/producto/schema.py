@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.modules.categoria.schema import CategoriaRead
 from app.modules.ingrediente.schema import IngredienteRead
@@ -51,10 +51,16 @@ class ProductoRead(ProductoBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
     categorias: list[ProductoCategoriaRead] = []
     ingredientes: list[ProductoIngredienteRead] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def eliminado(self) -> bool:
+        return self.deleted_at is not None
 
 
 class ProductoUpdate(BaseModel):

@@ -14,7 +14,7 @@ export function CategoriasPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Categoria | null>(null)
 
-  const { data, isLoading, isError, error } = useCategorias()
+  const { data, isLoading, isError, error } = useCategorias({ incluirEliminados: true })
   const createMutation = useCreateCategoria()
   const updateMutation = useUpdateCategoria()
   const deleteMutation = useDeleteCategoria()
@@ -27,6 +27,7 @@ export function CategoriasPage() {
   }
 
   const openEdit = (categoria: Categoria) => {
+    if (categoria.eliminado) return
     setEditing(categoria)
     setModalOpen(true)
   }
@@ -45,7 +46,8 @@ export function CategoriasPage() {
   }
 
   const handleDelete = (categoria: Categoria) => {
-    if (!confirm(`¿Borrar la categoría "${categoria.nombre}"?`)) return
+    if (categoria.eliminado) return
+    if (!confirm(`¿Desactivar la categoría "${categoria.nombre}"? (soft delete)`)) return
     deleteMutation.mutate(categoria.id)
   }
 

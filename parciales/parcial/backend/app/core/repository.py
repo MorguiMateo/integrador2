@@ -1,8 +1,3 @@
-# BaseRepository es la única pieza que habla con la base de datos.
-# Los services le piden datos a él; nunca tocan la session directamente.
-# Está diseñado para una sola entidad (ModelT) y aplica soft delete en todas
-# las consultas: los registros borrados no desaparecen de la DB, solo tienen
-# deleted_at poblado, lo que preserva la integridad de las relaciones.
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -20,10 +15,13 @@ class BaseRepository(Generic[ModelT]):
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def base_stmt(self) -> SelectOfScalar[ModelT]:
-        # Punto de partida de todas las queries: filtra deleted_at IS NULL
-        # para que los registros con soft delete nunca aparezcan en resultados.
-        return select(self.model).where(self.model.deleted_at == None)  # noqa: E711
+    def base_stmt(self, *, include_deleted: bool = False) -> SelectOfScalar[ModelT]:
+        # Por defecto filtra deleted_at IS NULL. Con include_deleted=True el backoffice
+        # puede listar también filas desactivadas (soft delete) para mostrarlas en gris.
+        stmt = select(self.model)
+        if not include_deleted:
+            stmt = stmt.where(self.model.deleted_at == None)  # noqa: E711
+        return stmt
 
     def get(self, id: int) -> ModelT | None:
         obj = self.session.get(self.model, id)

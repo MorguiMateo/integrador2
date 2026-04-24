@@ -26,10 +26,19 @@ def listar_ingredientes(
     es_alergeno: Annotated[
         bool | None, Query(description="Filtrar por alérgeno")
     ] = None,
+    incluir_eliminados: Annotated[
+        bool,
+        Query(description="Si true, incluye filas con soft-delete (eliminado=true)"),
+    ] = False,
 ):
     with UnitOfWork() as uow:
         return service.list_ingredientes(
-            uow, skip=skip, limit=limit, nombre=nombre, es_alergeno=es_alergeno
+            uow,
+            skip=skip,
+            limit=limit,
+            nombre=nombre,
+            es_alergeno=es_alergeno,
+            incluir_eliminados=incluir_eliminados,
         )
 
 

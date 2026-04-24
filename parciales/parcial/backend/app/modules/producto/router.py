@@ -33,6 +33,10 @@ def listar_productos(
     precio_max: Annotated[
         Decimal | None, Query(ge=0, description="Precio máximo inclusivo")
     ] = None,
+    incluir_eliminados: Annotated[
+        bool,
+        Query(description="Si true, incluye productos con soft-delete (eliminado=true)"),
+    ] = False,
 ):
     with UnitOfWork() as uow:
         return service.list_productos(
@@ -43,6 +47,7 @@ def listar_productos(
             disponible=disponible,
             precio_min=precio_min,
             precio_max=precio_max,
+            incluir_eliminados=incluir_eliminados,
         )
 
 

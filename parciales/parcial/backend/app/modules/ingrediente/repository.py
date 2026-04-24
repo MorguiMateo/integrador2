@@ -14,8 +14,9 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         limit: int = 50,
         nombre: str | None = None,
         es_alergeno: bool | None = None,
+        incluir_eliminados: bool = False,
     ) -> list[Ingrediente]:
-        stmt = self.base_stmt()
+        stmt = self.base_stmt(include_deleted=incluir_eliminados)
         if nombre:
             stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
         if es_alergeno is not None:

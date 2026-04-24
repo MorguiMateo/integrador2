@@ -10,6 +10,7 @@ interface ProductoCardProps {
 }
 
 export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) {
+  const inactivo = Boolean(producto.eliminado)
   // Índice actual del carrusel: apunta a la imagen visible dentro de imagenes_url
   const [imageIndex, setImageIndex] = useState(0)
   const imagenes = producto.imagenes_url
@@ -19,7 +20,9 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
   const next = () => setImageIndex((i) => (i + 1) % total)
 
   return (
-    <article className="flex flex-col border border-gray-300">
+    <article
+      className={`flex flex-col border border-gray-300 ${inactivo ? 'bg-gray-50 opacity-85' : ''}`}
+    >
       <div className="relative w-full bg-gray-100" style={{ aspectRatio: '1' }}>
         {total > 0 ? (
           <>
@@ -70,12 +73,16 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
         <div className="flex items-start justify-between gap-2">
           <Link
             to={`/productos/${producto.id}`}
-            className="text-base font-semibold underline"
+            className={`text-base font-semibold underline ${inactivo ? 'text-gray-600' : ''}`}
           >
             {producto.nombre}
           </Link>
           <span className="shrink-0 text-xs text-gray-600">
-            {producto.disponible ? 'Disponible' : 'No disponible'}
+            {inactivo
+              ? 'Desactivado'
+              : producto.disponible
+                ? 'Disponible'
+                : 'No disponible'}
           </span>
         </div>
 
@@ -92,16 +99,18 @@ export function ProductoCard({ producto, onEdit, onDelete }: ProductoCardProps) 
           <button
             type="button"
             onClick={() => onEdit(producto)}
-            className="border border-gray-400 px-3 py-1 text-xs"
+            disabled={inactivo}
+            className="border border-gray-400 px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
           >
             Editar
           </button>
           <button
             type="button"
             onClick={() => onDelete(producto)}
-            className="border border-red-400 px-3 py-1 text-xs text-red-600"
+            disabled={inactivo}
+            className="border border-red-400 px-3 py-1 text-xs text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Borrar
+            {inactivo ? 'Desactivado' : 'Desactivar'}
           </button>
         </div>
       </div>
