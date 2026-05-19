@@ -16,6 +16,10 @@ from app.modules.producto.schema import (
 
 router = APIRouter(prefix="/productos", tags=["productos"])
 
+##uow al service
+##
+##
+##
 
 @router.get("", response_model=list[ProductoRead])
 def listar_productos(

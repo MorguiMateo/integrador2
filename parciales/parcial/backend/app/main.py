@@ -22,11 +22,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: acepta cualquier puerto de localhost en desarrollo (5173, 5174, etc.)
-# para no tener que hardcodear el puerto cuando Vite lo cambia si está ocupado.
+# CORS: localhost o 127.0.0.1 y cualquier puerto en desarrollo (Vite puede servir en ambos).
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,8 +34,3 @@ app.add_middleware(
 app.include_router(categoria_router)
 app.include_router(ingrediente_router)
 app.include_router(producto_router)
-
-
-@app.get("/", tags=["health"])
-def health():
-    return {"status": "ok"}

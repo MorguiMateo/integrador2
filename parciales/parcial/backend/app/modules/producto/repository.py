@@ -11,11 +11,6 @@ from app.modules.producto.model import Producto
 
 
 class ProductoRepository(BaseRepository[Producto]):
-    """Repo de Producto.
-
-    Incluye acceso a las tablas-enlace (ProductoCategoria, ProductoIngrediente)
-    porque siempre se consultan/modifican en función de un producto concreto.
-    """
 
     model = Producto
 

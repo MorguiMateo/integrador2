@@ -60,13 +60,13 @@ def list_productos(
     )
     return [_to_read_dict(p) for p in productos]
 
-
+##
 def get_producto(uow: UnitOfWork, producto_id: int) -> dict | None:
     producto = uow.productos.get_with_relations(producto_id)
     if producto is None:
         return None
     return _to_read_dict(producto)
-
+##
 
 def _validate_categorias(
     uow: UnitOfWork,
