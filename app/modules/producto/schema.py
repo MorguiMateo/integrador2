@@ -24,11 +24,15 @@ class ProductoCategoriaRead(BaseModel):
 class ProductoIngredienteCreate(BaseModel):
     ingrediente_id: int = Field(ge=1)
     es_removible: bool = False
+    cantidad: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
+    unidad_medida_id: int = Field(ge=1)
 
 
 class ProductoIngredienteRead(BaseModel):
     ingrediente: IngredienteRead
     es_removible: bool
+    cantidad: Decimal
+    unidad_medida_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,6 +49,7 @@ class ProductoBase(BaseModel):
 class ProductoCreate(ProductoBase):
     categorias: list[ProductoCategoriaCreate] = Field(default_factory=list)
     ingredientes: list[ProductoIngredienteCreate] = Field(default_factory=list)
+    unidad_venta_id: int | None = None
 
 
 class ProductoRead(ProductoBase):
@@ -54,7 +59,7 @@ class ProductoRead(ProductoBase):
     deleted_at: datetime | None = None
     categorias: list[ProductoCategoriaRead] = []
     ingredientes: list[ProductoIngredienteRead] = []
-
+    unidad_venta_id: int | None = None
     model_config = ConfigDict(from_attributes=True)
 
     @computed_field
@@ -72,3 +77,8 @@ class ProductoUpdate(BaseModel):
     disponible: bool | None = None
     categorias: list[ProductoCategoriaCreate] | None = None
     ingredientes: list[ProductoIngredienteCreate] | None = None
+    unidad_venta_id: int | None = None
+
+
+    #meti unidad_venta_id: int | None = None en ProductoCreate, en ProductoUpdate y en ProductoRead
+    #y meti cantidad y unidad de medida en ProductoIngredienteCreate y en ProductoIngredienteRead
