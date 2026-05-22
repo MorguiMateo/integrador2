@@ -2,16 +2,25 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import Session
 
-from app.core.database import create_db_and_tables
+from app.core.database import create_db_and_tables, engine
+from app.db.seed import run_seed
+from app.modules.auth.router import router as auth_router
 from app.modules.categoria.router import router as categoria_router
+from app.modules.direccion_entrega.router import router as direccion_router
 from app.modules.ingrediente.router import router as ingrediente_router
 from app.modules.producto.router import router as producto_router
+from app.modules.usuario.router import router as usuario_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+
+    with Session(engine) as session:
+        run_seed(session)
+
     yield
 
 
@@ -30,7 +39,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#Cada módulo expone su router y acá los monto en la app.
+# Cada módulo expone su router y acá los monto en la app.
+app.include_router(auth_router)
 app.include_router(categoria_router)
+app.include_router(direccion_router)
 app.include_router(ingrediente_router)
 app.include_router(producto_router)
+app.include_router(usuario_router)
