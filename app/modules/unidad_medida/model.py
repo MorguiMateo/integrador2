@@ -8,7 +8,7 @@ from sqlmodel import Field, SQLModel
 
 
 class UnidadMedida(SQLModel, table=True):
-    __tablenam__ = "unidad_medidas"
+    __tablename__ = "unidad_medidas"
 
     id: int | None = Field(default=None, primary_key=True)
     nombre: str = Field(unique=True, max_length=50, nullable=False)
