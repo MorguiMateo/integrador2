@@ -25,11 +25,9 @@ class Ingrediente(SQLModel, table=True):
             onupdate=func.now(),
         ),
     )
-    deleted_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(DateTime(timezone=True), nullable=True),
-    )
 
     producto_links: list[ProductoIngrediente] = Relationship(
         back_populates="ingrediente",
     )
+
+##elimine: deleted_at y su Column(DateTime...)
