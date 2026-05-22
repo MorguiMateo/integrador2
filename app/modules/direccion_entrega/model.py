@@ -19,7 +19,7 @@ class DireccionEntrega(SQLModel, table=True):
     pero solo una puede estar marcada como principal.
     """
 
-    __tablename__ = "direccion_entrega"
+    __tablename__ = "direcciones_entrega"
 
     # -------------------------------------------------------------------------
     # Primary Key
@@ -35,7 +35,7 @@ class DireccionEntrega(SQLModel, table=True):
     # -------------------------------------------------------------------------
 
     usuario_id: int = Field(
-        foreign_key="usuario.id",
+        foreign_key="usuarios.id",
         nullable=False,
         index=True,
     )

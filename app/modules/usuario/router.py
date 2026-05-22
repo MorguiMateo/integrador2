@@ -1,6 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.uow import UnitOfWork
+from app.modules.auth.dependencies import (
+    get_current_active_user,
+    require_admin,
+)
+from app.modules.usuario.model import Usuario
 from app.modules.usuario.schemas import (
     UserCreate,
     UserPublic,
@@ -11,18 +16,6 @@ from app.modules.usuario.service import (
     list_usuarios,
 )
 
-# -----------------------------------------------------------------------------
-# TODO:
-# Estas dependencias deben implementarse en el módulo auth.
-# Se dejan comentadas para evitar romper imports mientras
-# el sistema de autenticación todavía no existe.
-# -----------------------------------------------------------------------------
-
-# from app.modules.auth.dependencies import (
-#     get_current_active_user,
-#     require_admin,
-# )
-
 router = APIRouter(
     prefix="/usuarios",
     tags=["Usuarios"],
@@ -30,7 +23,7 @@ router = APIRouter(
 
 
 # -----------------------------------------------------------------------------
-# Registro público
+# Registro publico
 # -----------------------------------------------------------------------------
 
 @router.post(
@@ -43,9 +36,9 @@ def register_usuario(
     uow: UnitOfWork = Depends(),
 ):
     """
-    Registro público de usuarios.
+    Registro publico de usuarios.
 
-    No requiere autenticación.
+    No requiere autenticacion.
     """
 
     with uow:
@@ -53,8 +46,6 @@ def register_usuario(
             uow=uow,
             data=data,
         )
-
-        uow.commit()
 
         return usuario
 
@@ -68,23 +59,15 @@ def register_usuario(
     response_model=UserPublic,
 )
 def get_me(
-    # current_user = Depends(get_current_active_user),
+    current_user: Usuario = Depends(get_current_active_user),
 ):
     """
     Devuelve el usuario autenticado actual.
 
-    Requiere autenticación.
+    Requiere autenticacion.
     """
 
-    # TODO:
-    # Reemplazar cuando exista auth real.
-    #
-    # return current_user
-
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Authentication system not implemented yet.",
-    )
+    return current_user
 
 
 # -----------------------------------------------------------------------------
@@ -99,8 +82,7 @@ def get_usuarios(
     skip: int = 0,
     limit: int = 100,
     uow: UnitOfWork = Depends(),
-
-    # _: Usuario = Depends(require_admin),
+    _: Usuario = Depends(require_admin),
 ):
     """
     Lista usuarios.
@@ -127,13 +109,12 @@ def get_usuarios(
 def get_usuario_by_id(
     usuario_id: int,
     uow: UnitOfWork = Depends(),
-
-    # current_user = Depends(get_current_active_user),
+    _: Usuario = Depends(get_current_active_user),
 ):
     """
     Obtiene detalle de usuario.
 
-    Requiere autenticación.
+    Requiere autenticacion.
     """
 
     with uow:
@@ -152,7 +133,7 @@ def get_usuario_by_id(
 
 
 # -----------------------------------------------------------------------------
-# Gestión de roles
+# Gestion de roles
 # -----------------------------------------------------------------------------
 
 @router.patch(
@@ -161,21 +142,13 @@ def get_usuario_by_id(
 )
 def update_usuario_roles(
     usuario_id: int,
-
-    # _: Usuario = Depends(require_admin),
+    _: Usuario = Depends(require_admin),
 ):
     """
     Asigna o remueve roles de usuario.
 
     Requiere rol ADMIN.
     """
-
-    # TODO:
-    # Implementar lógica de roles.
-    # Depende de:
-    # - UsuarioRol
-    # - Rol
-    # - auth/permissions
 
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,

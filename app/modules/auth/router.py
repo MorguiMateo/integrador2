@@ -57,8 +57,6 @@ def login(
 
         tokens = issue_tokens(uow=uow, usuario=usuario)
 
-        uow.commit()
-
         return tokens
 
 
@@ -97,8 +95,6 @@ def refresh(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        uow.commit()
-
         return tokens
 
 
@@ -130,4 +126,3 @@ def logout(
 
     with uow:
         revoke_refresh_token(uow=uow, token_hash=token_hash)
-        uow.commit()

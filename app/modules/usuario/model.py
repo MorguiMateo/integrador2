@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Usuario(SQLModel, table=True):
-    __tablename__ = "usuario"
+    __tablename__ = "usuarios"
 
     # -------------------------------------------------------------------------
     # Primary Key

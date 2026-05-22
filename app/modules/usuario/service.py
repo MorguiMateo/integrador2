@@ -43,7 +43,13 @@ def create_usuario(
         password_hash=password_hash,
     )
 
-    usuario_repository.create(usuario)
+    usuario_repository.save(usuario)
+
+    from app.modules.usuario_rol.model import UsuarioRol
+
+    usuario_rol = UsuarioRol(usuario_id=usuario.id, rol_codigo="CLIENT")
+    uow.session.add(usuario_rol)
+    uow.session.flush()
 
     return usuario
 

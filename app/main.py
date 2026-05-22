@@ -12,6 +12,9 @@ from app.modules.direccion_entrega.router import router as direccion_router
 from app.modules.ingrediente.router import router as ingrediente_router
 from app.modules.producto.router import router as producto_router
 from app.modules.usuario.router import router as usuario_router
+from app.modules.pedido.router import router as pedido_router
+from app.modules.unidad_medida.router import router as unidad_medida_router
+from app.modules.pago.router import router as pago_router
 
 
 @asynccontextmanager
@@ -46,3 +49,6 @@ app.include_router(direccion_router)
 app.include_router(ingrediente_router)
 app.include_router(producto_router)
 app.include_router(usuario_router)
+app.include_router(pedido_router)
+app.include_router(unidad_medida_router)
+app.include_router(pago_router)
