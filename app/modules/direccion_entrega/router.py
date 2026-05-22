@@ -6,6 +6,7 @@ from app.modules.direccion_entrega.schema import DireccionCreate, DireccionPubli
 from app.modules.direccion_entrega.service import (
     create_direccion,
     delete_direccion,
+    set_principal,
     list_direcciones,
 )
 from app.modules.usuario.model import Usuario
@@ -77,8 +78,6 @@ def add_direccion(
             current_user=current_user,
         )
 
-        uow.commit()
-
         return direccion
 
 
@@ -111,4 +110,24 @@ def remove_direccion(
             current_user=current_user,
         )
 
-        uow.commit()
+# -----------------------------------------------------------------------------
+# Marcar como principal
+# -----------------------------------------------------------------------------
+
+@router.patch(
+    "/{direccion_id}/principal",
+    response_model=DireccionPublic,
+)
+def mark_as_principal(
+    usuario_id: int,
+    direccion_id: int,
+    uow: UnitOfWork = Depends(),
+    current_user: Usuario = Depends(get_current_active_user),
+):
+    with uow:
+        return set_principal(
+            uow=uow,
+            usuario_id=usuario_id,
+            direccion_id=direccion_id,
+            current_user=current_user,
+        )

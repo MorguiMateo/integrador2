@@ -19,7 +19,7 @@ class RefreshToken(SQLModel, table=True):
     )
 
     usuario_id: int = Field(
-        foreign_key="usuario.id",
+        foreign_key="usuarios.id",
         nullable=False,
     )
 

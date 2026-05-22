@@ -175,3 +175,29 @@ def delete_direccion(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dirección no encontrada.",
         )
+    
+
+def set_principal(
+    uow,
+    usuario_id: int,
+    direccion_id: int,
+    current_user: Usuario,
+) -> DireccionEntrega:
+    _assert_owner_or_admin(current_user, usuario_id)
+
+    repository = DireccionEntregaRepository(uow.session)
+
+    direccion = repository.get(direccion_id)
+
+    if not direccion or direccion.usuario_id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dirección no encontrada.",
+        )
+
+    repository.unset_principal(usuario_id)
+    direccion.es_principal = True
+    uow.session.add(direccion)
+    uow.session.flush()
+
+    return direccion

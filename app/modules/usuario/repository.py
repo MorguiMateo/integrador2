@@ -8,9 +8,7 @@ class UsuarioRepository(BaseRepository[Usuario]):
     """
     Repository especializado para Usuario.
     """
-
-    def __init__(self, session: Session):
-        super().__init__(Usuario, session)
+    model = Usuario
 
     def get_by_email(
         self,
@@ -37,3 +35,8 @@ class UsuarioRepository(BaseRepository[Usuario]):
         )
 
         return self.session.exec(statement).first()
+    
+    def get_all(self, *, skip: int = 0, limit: int = 100) -> list[Usuario]:
+        stmt = select(Usuario).where(Usuario.deleted_at.is_(None))
+        stmt = stmt.offset(skip).limit(limit)
+        return list(self.session.exec(stmt).all())
