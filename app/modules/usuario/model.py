@@ -66,7 +66,7 @@ class Usuario(SQLModel, table=True):
     # Relaciones
     # -------------------------------------------------------------------------
 
-    roles_link: list["UsuarioRol"] = Relationship(back_populates="usuario")
+    roles_link: list["UsuarioRol"] = Relationship(back_populates="usuario", sa_relationship_kwargs={"lazy": "selectin"})
     refresh_tokens: list["RefreshToken"] = Relationship(back_populates="usuario")
     direcciones: list["DireccionEntrega"] = Relationship(back_populates="usuario")
 

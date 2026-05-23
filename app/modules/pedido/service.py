@@ -8,7 +8,7 @@ from app.modules.producto.model import Producto
 FSM_TRANSITIONS = {
     "PENDIENTE":  ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP",    "CANCELADO"],
-    "EN_PREP":    ["EN_CAMINO",  "CANCELADO"],
+    "EN_PREP":    ["EN_CAMINO"],
     "EN_CAMINO":  ["ENTREGADO"],
     "ENTREGADO":  [],
     "CANCELADO":  [],

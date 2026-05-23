@@ -22,8 +22,9 @@ class Pedido(SQLModel, table=True):
     created_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()))
     updated_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()))
     deleted_at: datetime | None = Field(sa_column=Column(DateTime(timezone=True), nullable=True), default=None)
-    detalles: list["DetallePedido"] = Relationship()
-    historial: list["HistorialEstadoPedido"] = Relationship()
+    detalles: list["DetallePedido"] = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+    historial: list["HistorialEstadoPedido"] = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+
 
 
 
