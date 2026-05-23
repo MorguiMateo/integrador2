@@ -40,15 +40,17 @@ app.add_middleware(
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
+
 # Cada módulo expone su router y acá los monto en la app.
-app.include_router(auth_router)
-app.include_router(categoria_router)
-app.include_router(direccion_router)
-app.include_router(ingrediente_router)
-app.include_router(producto_router)
-app.include_router(usuario_router)
-app.include_router(pedido_router)
-app.include_router(unidad_medida_router)
-app.include_router(pago_router)
+app.include_router(auth_router,  prefix="/api/v1")
+app.include_router(categoria_router,  prefix="/api/v1")
+app.include_router(direccion_router,  prefix="/api/v1")
+app.include_router(ingrediente_router, prefix="/api/v1")
+app.include_router(producto_router,  prefix="/api/v1")
+app.include_router(usuario_router,  prefix="/api/v1")
+app.include_router(pedido_router,  prefix="/api/v1")
+app.include_router(unidad_medida_router,  prefix="/api/v1")
+app.include_router(pago_router,  prefix="/api/v1")
