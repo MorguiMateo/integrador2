@@ -52,7 +52,7 @@ class Usuario(SQLModel, table=True):
     )
 
     # Soft-delete — no figura en el UML pero se conserva por decisión de diseño
-    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=False))
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=True))
 
     # -------------------------------------------------------------------------
     # Relaciones

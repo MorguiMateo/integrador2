@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import TIMESTAMPTZ
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -80,15 +80,15 @@ class DireccionEntrega(SQLModel, table=True):
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=False),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False),
     )
 
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=False),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False),
     )
 
-    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=True))
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=True))
 
     # -------------------------------------------------------------------------
     # Relaciones
