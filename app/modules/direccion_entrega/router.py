@@ -1,133 +1,111 @@
-from fastapi import APIRouter, Depends, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, status
 
 from app.core.deps import get_current_active_user
 from app.core.uow import UnitOfWork
-from app.modules.direccion_entrega.schema import DireccionCreate, DireccionPublic
+from app.modules.direccion_entrega.schema import (
+    DireccionCreate,
+    DireccionPublic,
+    DireccionUpdate,
+)
 from app.modules.direccion_entrega.service import (
     create_direccion,
     delete_direccion,
-    set_principal,
     list_direcciones,
+    set_principal,
+    update_direccion,
 )
 from app.modules.usuario.model import Usuario
 
+
 router = APIRouter(
-    prefix="/usuarios/{usuario_id}/direcciones",
+    prefix="/direcciones",
     tags=["Direcciones"],
 )
 
 
-# -----------------------------------------------------------------------------
-# Listar
-# -----------------------------------------------------------------------------
-
 @router.get(
-    "/",
+    "",
     response_model=list[DireccionPublic],
 )
 def get_direcciones(
-    usuario_id: int,
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
-    """
-    Lista las direcciones de entrega de un usuario.
-
-    Requiere autenticación.
-    Solo el propio usuario o un ADMIN pueden acceder.
-    """
+    """Lista las direcciones de entrega del usuario autenticado."""
 
     with uow:
-        return list_direcciones(
-            uow=uow,
-            usuario_id=usuario_id,
-            current_user=current_user,
-        )
+        return list_direcciones(uow=uow, usuario_id=current_user.id)
 
-
-# -----------------------------------------------------------------------------
-# Crear
-# -----------------------------------------------------------------------------
 
 @router.post(
-    "/",
+    "",
     response_model=DireccionPublic,
     status_code=status.HTTP_201_CREATED,
 )
 def add_direccion(
-    usuario_id: int,
     data: DireccionCreate,
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
-    """
-    Agrega una dirección de entrega a un usuario.
+    """Crea una dirección para el usuario autenticado.
 
-    Si ``es_principal=true``, la dirección principal
-    anterior queda desmarcada automáticamente.
-
-    Requiere autenticación.
-    Solo el propio usuario o un ADMIN pueden agregar.
+    Si ``es_principal=true`` desmarca la anterior antes de persistir.
     """
 
     with uow:
-        direccion = create_direccion(
+        return create_direccion(uow=uow, usuario_id=current_user.id, data=data)
+
+
+@router.put(
+    "/{direccion_id}",
+    response_model=DireccionPublic,
+)
+def edit_direccion(
+    direccion_id: Annotated[int, Path(ge=1)],
+    data: DireccionUpdate,
+    uow: UnitOfWork = Depends(),
+    current_user: Usuario = Depends(get_current_active_user),
+):
+    with uow:
+        return update_direccion(
             uow=uow,
-            usuario_id=usuario_id,
+            usuario_id=current_user.id,
+            direccion_id=direccion_id,
             data=data,
-            current_user=current_user,
         )
 
-        return direccion
-
-
-# -----------------------------------------------------------------------------
-# Eliminar
-# -----------------------------------------------------------------------------
 
 @router.delete(
     "/{direccion_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def remove_direccion(
-    usuario_id: int,
-    direccion_id: int,
+    direccion_id: Annotated[int, Path(ge=1)],
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
-    """
-    Elimina (soft-delete) una dirección de entrega.
-
-    Requiere autenticación.
-    Solo el propio usuario o un ADMIN pueden eliminar.
-    """
-
     with uow:
         delete_direccion(
             uow=uow,
-            usuario_id=usuario_id,
+            usuario_id=current_user.id,
             direccion_id=direccion_id,
-            current_user=current_user,
         )
 
-# -----------------------------------------------------------------------------
-# Marcar como principal
-# -----------------------------------------------------------------------------
 
 @router.patch(
     "/{direccion_id}/principal",
     response_model=DireccionPublic,
 )
 def mark_as_principal(
-    usuario_id: int,
-    direccion_id: int,
+    direccion_id: Annotated[int, Path(ge=1)],
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
     with uow:
         return set_principal(
             uow=uow,
-            usuario_id=usuario_id,
+            usuario_id=current_user.id,
             direccion_id=direccion_id,
-            current_user=current_user,
         )

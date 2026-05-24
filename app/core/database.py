@@ -21,13 +21,11 @@ def create_db_and_tables() -> None:
     from app.modules.rol.model import Rol
     from app.modules.usuario.model import Usuario
     from app.modules.usuario_rol.model import UsuarioRol
-    from app.modules.refresh_token.model import RefreshToken
     from app.modules.direccion_entrega.model import DireccionEntrega
     from app.modules.unidad_medida.model import UnidadMedida
     from app.modules.estado_pedido.model import EstadoPedido
     from app.modules.forma_pago.model import FormaPago
     from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
-    from app.modules.pago.model import Pago
     from app.modules.categoria.model import Categoria  # noqa: F401
     from app.modules.ingrediente.model import Ingrediente  # noqa: F401
     from app.modules.producto.link_models import (  # noqa: F401

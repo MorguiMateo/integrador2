@@ -4,6 +4,7 @@ sqlmodel
 psycopg2-binary
 python-dotenv
 pydantic
-pydantic-settings#Si SECRET_KEY no existe, la app falla en arranque y no en producción
-python-jose[cryptography]#soporta HS256
-passlib[bcrypt]#Encapsula bcrypt
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+email-validator

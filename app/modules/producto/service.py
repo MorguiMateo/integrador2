@@ -46,14 +46,31 @@ def list_productos(
     disponible: Optional[bool] = None,
     precio_min: Optional[Decimal] = None,
     precio_max: Optional[Decimal] = None,
+    categoria_id: Optional[int] = None,
     incluir_eliminados: bool = False,
 ) -> list[ProductoRead]:
     with UnitOfWork() as uow:
         productos = uow.productos.list_with_relations(
-            skip=skip, limit=limit, q=q, disponible=disponible,
-            precio_min=precio_min, precio_max=precio_max, incluir_eliminados=incluir_eliminados,
+            skip=skip,
+            limit=limit,
+            q=q,
+            disponible=disponible,
+            precio_min=precio_min,
+            precio_max=precio_max,
+            categoria_id=categoria_id,
+            incluir_eliminados=incluir_eliminados,
         )
         return [_to_read(p) for p in productos]
+
+
+def set_disponibilidad(producto_id: int, disponible: bool) -> ProductoRead:
+    with UnitOfWork() as uow:
+        producto = uow.productos.get(producto_id)
+        if producto is None:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        producto.disponible = disponible
+        uow.productos.save(producto)
+        return _to_read(uow.productos.get_with_relations(producto_id))
 
 
 def get_producto(producto_id: int) -> ProductoRead:

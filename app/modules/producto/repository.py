@@ -33,6 +33,7 @@ class ProductoRepository(BaseRepository[Producto]):
         disponible: Optional[bool] = None,
         precio_min: Optional[Decimal] = None,
         precio_max: Optional[Decimal] = None,
+        categoria_id: Optional[int] = None,
         incluir_eliminados: bool = False,
     ) -> list[Producto]:
         stmt = self._with_relations(include_deleted=incluir_eliminados)
@@ -44,6 +45,14 @@ class ProductoRepository(BaseRepository[Producto]):
             stmt = stmt.where(Producto.precio_base >= precio_min)
         if precio_max is not None:
             stmt = stmt.where(Producto.precio_base <= precio_max)
+        if categoria_id is not None:
+            stmt = stmt.where(
+                Producto.id.in_(
+                    select(ProductoCategoria.producto_id).where(
+                        ProductoCategoria.categoria_id == categoria_id
+                    )
+                )
+            )
         stmt = stmt.offset(skip).limit(limit).order_by(Producto.id)
         return list(self.session.exec(stmt).all())
 

@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Column, DateTime, func
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.modules.usuario.model import Usuario
 
 
 class UsuarioRol(SQLModel, table=True):
@@ -44,4 +49,9 @@ class UsuarioRol(SQLModel, table=True):
             nullable=False,
             server_default=func.now(),
         ),
+    )
+
+    usuario: "Usuario" = Relationship(
+        back_populates="roles_link",
+        sa_relationship_kwargs={"foreign_keys": "[UsuarioRol.usuario_id]"},
     )

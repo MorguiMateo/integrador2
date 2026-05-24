@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import select
 
 from app.core.repository import BaseRepository
 from app.modules.direccion_entrega.model import DireccionEntrega
@@ -9,8 +9,7 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
     Repository especializado para DireccionEntrega.
     """
 
-    def __init__(self, session: Session):
-        super().__init__(DireccionEntrega, session)
+    model = DireccionEntrega
 
     def list_by_usuario(
         self,

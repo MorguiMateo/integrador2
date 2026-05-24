@@ -7,7 +7,6 @@ from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from app.modules.usuario_rol.model import UsuarioRol
-    from app.modules.refresh_token.model import RefreshToken
     from app.modules.direccion_entrega.model import DireccionEntrega
 
 
@@ -58,8 +57,10 @@ class Usuario(SQLModel, table=True):
     # Relaciones
     # -------------------------------------------------------------------------
 
-    roles_link: list["UsuarioRol"] = Relationship(back_populates="usuario", sa_relationship_kwargs={"lazy": "selectin"})
-    refresh_tokens: list["RefreshToken"] = Relationship(back_populates="usuario")
+    roles_link: list["UsuarioRol"] = Relationship(
+        back_populates="usuario",
+        sa_relationship_kwargs={"lazy": "selectin"},
+    )
     direcciones: list["DireccionEntrega"] = Relationship(back_populates="usuario")
 
     # -------------------------------------------------------------------------

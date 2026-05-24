@@ -1,13 +1,21 @@
 from __future__ import annotations
+
 from decimal import Decimal
-from typing import Optional
+from typing import Iterable, Optional
+
 from fastapi import HTTPException
 from sqlmodel import select
 
 from app.core.uow import UnitOfWork
-from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
-from app.modules.pedido.schema import DetallePedidoRead, HistorialRead, PedidoCreate, PedidoRead
+from app.modules.pedido.model import DetallePedido, HistorialEstadoPedido, Pedido
+from app.modules.pedido.schema import (
+    DetallePedidoRead,
+    HistorialRead,
+    PedidoCreate,
+    PedidoRead,
+)
 from app.modules.producto.model import Producto
+from app.modules.usuario.model import Usuario
 
 
 FSM_TRANSITIONS = {
@@ -19,9 +27,23 @@ FSM_TRANSITIONS = {
     "CANCELADO":  [],
 }
 
+ROLES_GESTION_PEDIDOS = {"ADMIN", "PEDIDOS"}
+ESTADOS_CANCELABLES_POR_CLIENTE = {"PENDIENTE", "CONFIRMADO"}
 
-def _puede_ver_todos(roles) -> bool:
-    return any(r in roles for r in ("ADMIN", "PEDIDOS"))
+
+def _puede_ver_todos(roles: Iterable[str]) -> bool:
+    return any(r in ROLES_GESTION_PEDIDOS for r in roles)
+
+
+def _puede_avanzar(roles: Iterable[str]) -> bool:
+    return any(r in ROLES_GESTION_PEDIDOS for r in roles)
+
+
+def _assert_puede_ver(pedido: Pedido, current_user_id: int, roles: Iterable[str]) -> None:
+    if _puede_ver_todos(roles):
+        return
+    if pedido.usuario_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Sin acceso a este pedido")
 
 
 def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
@@ -29,8 +51,24 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
         detalles = []
         for item in data.items:
             producto = uow.session.get(Producto, item.producto_id)
-            if producto is None:
-                raise HTTPException(status_code=422, detail=f"Producto {item.producto_id} no encontrado")
+            if producto is None or producto.deleted_at is not None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Producto {item.producto_id} no encontrado",
+                )
+            if not producto.disponible:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Producto '{producto.nombre}' no está disponible.",
+                )
+            if producto.stock_cantidad < item.cantidad:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"Stock insuficiente para '{producto.nombre}': "
+                        f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
+                    ),
+                )
             detalles.append(DetallePedido(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
@@ -62,13 +100,16 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
             uow.session.add(det)
 
         uow.session.add(HistorialEstadoPedido(
-            pedido_id=pedido.id, estado_desde=None, estado_hacia="PENDIENTE", usuario_id=usuario_id,
+            pedido_id=pedido.id,
+            estado_desde=None,
+            estado_hacia="PENDIENTE",
+            usuario_id=usuario_id,
         ))
         uow.session.flush()
         return PedidoRead.model_validate(pedido)
 
 
-def list_pedidos(usuario_id: int, roles) -> list[PedidoRead]:
+def list_pedidos(usuario_id: int, roles: Iterable[str]) -> list[PedidoRead]:
     with UnitOfWork() as uow:
         stmt = select(Pedido).where(Pedido.deleted_at.is_(None))
         if not _puede_ver_todos(roles):
@@ -77,48 +118,119 @@ def list_pedidos(usuario_id: int, roles) -> list[PedidoRead]:
         return [PedidoRead.model_validate(p) for p in pedidos]
 
 
-def get_pedido(pedido_id: int, usuario_id: int, roles) -> PedidoRead:
+def get_pedido(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> PedidoRead:
     with UnitOfWork() as uow:
         pedido = uow.session.get(Pedido, pedido_id)
         if pedido is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
-        if not _puede_ver_todos(roles) and pedido.usuario_id != usuario_id:
+        _assert_puede_ver(pedido, usuario_id, roles)
+        return PedidoRead.model_validate(pedido)
+
+
+def _aplicar_transicion(
+    uow,
+    pedido: Pedido,
+    estado_hacia: str,
+    usuario_id: Optional[int],
+    motivo: Optional[str],
+) -> Pedido:
+    if estado_hacia not in FSM_TRANSITIONS[pedido.estado_codigo]:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
+        )
+
+    estado_anterior = pedido.estado_codigo
+    pedido.estado_codigo = estado_hacia
+    uow.session.add(pedido)
+    uow.session.add(HistorialEstadoPedido(
+        pedido_id=pedido.id,
+        estado_desde=estado_anterior,
+        estado_hacia=estado_hacia,
+        usuario_id=usuario_id,
+        motivo=motivo,
+    ))
+    uow.session.flush()
+    return pedido
+
+
+def avanzar_estado(
+    pedido_id: int,
+    estado_hacia: str,
+    current_user: Usuario,
+    motivo: Optional[str],
+) -> PedidoRead:
+    if not _puede_avanzar(current_user.roles):
+        raise HTTPException(
+            status_code=403,
+            detail="Solo ADMIN o PEDIDOS pueden avanzar el estado del pedido.",
+        )
+
+    if estado_hacia == "CANCELADO" and not motivo:
+        raise HTTPException(
+            status_code=422,
+            detail="Motivo obligatorio para cancelar el pedido.",
+        )
+
+    with UnitOfWork() as uow:
+        pedido = uow.session.get(Pedido, pedido_id)
+        if pedido is None:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+        pedido = _aplicar_transicion(
+            uow=uow,
+            pedido=pedido,
+            estado_hacia=estado_hacia,
+            usuario_id=current_user.id,
+            motivo=motivo,
+        )
+        return PedidoRead.model_validate(pedido)
+
+
+def cancelar_pedido(
+    pedido_id: int,
+    current_user: Usuario,
+    motivo: str,
+) -> PedidoRead:
+    with UnitOfWork() as uow:
+        pedido = uow.session.get(Pedido, pedido_id)
+        if pedido is None:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+        es_dueno = pedido.usuario_id == current_user.id
+        es_gestor = _puede_avanzar(current_user.roles)
+        if not es_dueno and not es_gestor:
             raise HTTPException(status_code=403, detail="Sin acceso a este pedido")
+
+        if es_dueno and not es_gestor and pedido.estado_codigo not in ESTADOS_CANCELABLES_POR_CLIENTE:
+            raise HTTPException(
+                status_code=409,
+                detail="El pedido ya no puede cancelarse por el cliente.",
+            )
+
+        pedido = _aplicar_transicion(
+            uow=uow,
+            pedido=pedido,
+            estado_hacia="CANCELADO",
+            usuario_id=current_user.id,
+            motivo=motivo,
+        )
         return PedidoRead.model_validate(pedido)
 
 
-def avanzar_estado(pedido_id: int, estado_hacia: str, usuario_id: int, motivo: Optional[str]) -> PedidoRead:
+def list_detalles(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> list[DetallePedidoRead]:
     with UnitOfWork() as uow:
         pedido = uow.session.get(Pedido, pedido_id)
         if pedido is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
-        if estado_hacia not in FSM_TRANSITIONS[pedido.estado_codigo]:
-            raise HTTPException(status_code=422, detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}")
-        if estado_hacia == "CANCELADO" and motivo is None:
-            raise HTTPException(status_code=422, detail="Motivo obligatorio para cancelar el pedido")
-
-        estado_anterior = pedido.estado_codigo
-        pedido.estado_codigo = estado_hacia
-        uow.session.add(pedido)
-        uow.session.add(HistorialEstadoPedido(
-            pedido_id=pedido.id, estado_desde=estado_anterior, estado_hacia=estado_hacia,
-            usuario_id=usuario_id, motivo=motivo,
-        ))
-        uow.session.flush()
-        return PedidoRead.model_validate(pedido)
-
-
-def list_detalles(pedido_id: int) -> list[DetallePedidoRead]:
-    with UnitOfWork() as uow:
-        pedido = uow.session.get(Pedido, pedido_id)
-        if pedido is None:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        _assert_puede_ver(pedido, usuario_id, roles)
         return [DetallePedidoRead.model_validate(d) for d in pedido.detalles]
 
 
-def list_historial(pedido_id: int) -> list[HistorialRead]:
+def list_historial(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> list[HistorialRead]:
     with UnitOfWork() as uow:
         pedido = uow.session.get(Pedido, pedido_id)
         if pedido is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        _assert_puede_ver(pedido, usuario_id, roles)
         return [HistorialRead.model_validate(h) for h in pedido.historial]

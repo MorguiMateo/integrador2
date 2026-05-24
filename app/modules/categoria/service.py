@@ -1,15 +1,33 @@
 from __future__ import annotations
+
 from typing import Optional
+
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
+
 from app.core.uow import UnitOfWork
 from app.modules.categoria.model import Categoria
 from app.modules.categoria.schema import CategoriaCreate, CategoriaRead, CategoriaUpdate
 
 
-def list_categorias(*, skip: int = 0, limit: int = 50, nombre: Optional[str] = None, incluir_eliminados: bool = False) -> list[CategoriaRead]:
+def list_categorias(
+    *,
+    skip: int = 0,
+    limit: int = 50,
+    nombre: Optional[str] = None,
+    parent_id: Optional[int] = None,
+    solo_raices: bool = False,
+    incluir_eliminados: bool = False,
+) -> list[CategoriaRead]:
     with UnitOfWork() as uow:
-        categorias = uow.categorias.list(skip=skip, limit=limit, nombre=nombre, incluir_eliminados=incluir_eliminados)
+        categorias = uow.categorias.list(
+            skip=skip,
+            limit=limit,
+            nombre=nombre,
+            parent_id=parent_id,
+            solo_raices=solo_raices,
+            incluir_eliminados=incluir_eliminados,
+        )
         return [CategoriaRead.model_validate(c) for c in categorias]
 
 
@@ -63,5 +81,12 @@ def update_categoria(categoria_id: int, data: CategoriaUpdate) -> CategoriaRead:
 
 def delete_categoria(categoria_id: int) -> None:
     with UnitOfWork() as uow:
-        if not uow.categorias.soft_delete(categoria_id):
+        categoria = uow.categorias.get(categoria_id)
+        if categoria is None:
             raise HTTPException(status_code=404, detail="Categoria no encontrada")
+        if uow.categorias.tiene_productos_activos(categoria_id):
+            raise HTTPException(
+                status_code=409,
+                detail="No se puede eliminar: la categoria tiene productos activos asociados.",
+            )
+        uow.categorias.soft_delete(categoria_id)

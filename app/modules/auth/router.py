@@ -1,14 +1,14 @@
-import hashlib
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-
-from app.core.deps import get_current_active_user
+from app.core.config import settings
+from app.core.deps import ACCESS_COOKIE_NAME, get_current_active_user
 from app.core.uow import UnitOfWork
-from app.modules.auth.schema import RefreshRequest, Token
-from app.modules.auth.service import issue_tokens, revoke_refresh_token, rotate_refresh_token
+from app.modules.auth.schema import LoginRequest, RegisterRequest
+from app.modules.auth.service import create_access_token
 from app.modules.usuario.model import Usuario
-from app.modules.usuario.service import authenticate_user
+from app.modules.usuario.schemas import UserCreate, UserPublic
+from app.modules.usuario.service import authenticate_user, create_usuario
+
 
 router = APIRouter(
     prefix="/auth",
@@ -17,89 +17,68 @@ router = APIRouter(
 
 
 # -----------------------------------------------------------------------------
-# Login
+# Registro público — siempre asigna rol CLIENT
 # -----------------------------------------------------------------------------
 
 @router.post(
-    "/token",
-    response_model=Token,
+    "/register",
+    response_model=UserPublic,
+    status_code=status.HTTP_201_CREATED,
 )
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+def register(
+    data: RegisterRequest,
     uow: UnitOfWork = Depends(),
 ):
-    """
-    Autentica al usuario y emite access + refresh token.
+    with uow:
+        return create_usuario(
+            uow=uow,
+            data=UserCreate(**data.model_dump()),
+        )
 
-    Recibe credenciales como form-data (OAuth2 estándar):
-    - ``username``: email del usuario.
-    - ``password``: contraseña en texto plano.
 
-    Seguridad:
-    El mensaje de error es siempre el mismo independientemente
-    de si el email no existe o la contraseña es incorrecta.
-    Esto evita la enumeración de usuarios registrados.
-    """
+# -----------------------------------------------------------------------------
+# Login — setea cookie httpOnly con el JWT
+# -----------------------------------------------------------------------------
 
+@router.post(
+    "/login",
+    response_model=UserPublic,
+)
+def login(
+    data: LoginRequest,
+    response: Response,
+    uow: UnitOfWork = Depends(),
+):
     with uow:
         usuario = authenticate_user(
             uow=uow,
-            email=form_data.username,
-            password=form_data.password,
+            email=data.email,
+            password=data.password,
         )
 
         if not usuario:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas.",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
-        tokens = issue_tokens(uow=uow, usuario=usuario)
+        token = create_access_token(usuario)
 
-        return tokens
+        response.set_cookie(
+            key=ACCESS_COOKIE_NAME,
+            value=token,
+            httponly=True,
+            samesite="lax",
+            secure=False,
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            path="/",
+        )
+
+        return usuario
 
 
 # -----------------------------------------------------------------------------
-# Refresh
-# -----------------------------------------------------------------------------
-
-@router.post(
-    "/refresh",
-    response_model=Token,
-)
-def refresh(
-    body: RefreshRequest,
-    uow: UnitOfWork = Depends(),
-):
-    """
-    Rota el refresh token y emite un nuevo par de tokens.
-
-    Recibe el ``refresh_token`` raw en el body JSON.
-
-    Si el token es inválido, expirado o ya fue revocado
-    devuelve 401. Esto también cubre el caso de replay attack:
-    un token robado y ya rotado será rechazado.
-    """
-
-    with uow:
-        try:
-            tokens = rotate_refresh_token(
-                uow=uow,
-                token_raw=body.refresh_token,
-            )
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token inválido o expirado.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        return tokens
-
-
-# -----------------------------------------------------------------------------
-# Logout
+# Logout — borra cookie
 # -----------------------------------------------------------------------------
 
 @router.post(
@@ -107,22 +86,21 @@ def refresh(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def logout(
-    body: RefreshRequest,
-    uow: UnitOfWork = Depends(),
+    response: Response,
     _: Usuario = Depends(get_current_active_user),
 ):
-    """
-    Revoca el refresh token del cliente.
+    response.delete_cookie(key=ACCESS_COOKIE_NAME, path="/")
 
-    Requiere autenticación (access token válido en header)
-    y el ``refresh_token`` raw en el body JSON.
 
-    Si el token ya estaba revocado o no existe
-    devuelve 204 igualmente — no hay información útil
-    que darle a un posible atacante.
-    """
+# -----------------------------------------------------------------------------
+# Usuario autenticado
+# -----------------------------------------------------------------------------
 
-    token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
-
-    with uow:
-        revoke_refresh_token(uow=uow, token_hash=token_hash)
+@router.get(
+    "/me",
+    response_model=UserPublic,
+)
+def me(
+    current_user: Usuario = Depends(get_current_active_user),
+):
+    return current_user

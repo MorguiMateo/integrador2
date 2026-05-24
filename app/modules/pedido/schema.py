@@ -1,8 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.types import MoneyDecimal
 
 
 class ItemPedidoRequest(BaseModel):
@@ -23,13 +24,17 @@ class AvanzarEstadoRequest(BaseModel):
     motivo: Optional[str] = None
 
 
+class CancelarPedidoRequest(BaseModel):
+    motivo: str = Field(min_length=1, max_length=200)
+
+
 class DetallePedidoRead(BaseModel):
     pedido_id: int
     producto_id: int
     cantidad: int
     nombre_snapshot: str
-    precio_snapshot: Decimal
-    subtotal_snap: Decimal
+    precio_snapshot: MoneyDecimal
+    subtotal_snap: MoneyDecimal
     personalizacion: list[int]
     created_at: datetime
 
@@ -53,10 +58,10 @@ class PedidoRead(BaseModel):
     direccion_id: Optional[int]
     estado_codigo: str
     forma_pago_codigo: str
-    subtotal: Decimal
-    descuento: Decimal
-    costo_envio: Decimal
-    total: Decimal
+    subtotal: MoneyDecimal
+    descuento: MoneyDecimal
+    costo_envio: MoneyDecimal
+    total: MoneyDecimal
     notas: Optional[str]
     created_at: datetime
     updated_at: datetime
