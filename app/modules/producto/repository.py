@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Optional, Union
 
 from sqlalchemy.orm import selectinload
@@ -18,6 +17,7 @@ class ProductoRepository(BaseRepository[Producto]):
         return self.base_stmt(include_deleted=include_deleted).options(
             selectinload(Producto.categoria_links).selectinload(ProductoCategoria.categoria),
             selectinload(Producto.ingrediente_links).selectinload(ProductoIngrediente.ingrediente),
+            selectinload(Producto.unidad_venta),
         )
 
     def get_with_relations(self, producto_id: int) -> Optional[Producto]:
@@ -29,30 +29,8 @@ class ProductoRepository(BaseRepository[Producto]):
         *,
         skip: int = 0,
         limit: int = 50,
-        q: Optional[str] = None,
-        disponible: Optional[bool] = None,
-        precio_min: Optional[Decimal] = None,
-        precio_max: Optional[Decimal] = None,
-        categoria_id: Optional[int] = None,
-        incluir_eliminados: bool = False,
     ) -> list[Producto]:
-        stmt = self._with_relations(include_deleted=incluir_eliminados)
-        if q:
-            stmt = stmt.where(Producto.nombre.ilike(f"%{q}%"))
-        if disponible is not None:
-            stmt = stmt.where(Producto.disponible == disponible)
-        if precio_min is not None:
-            stmt = stmt.where(Producto.precio_base >= precio_min)
-        if precio_max is not None:
-            stmt = stmt.where(Producto.precio_base <= precio_max)
-        if categoria_id is not None:
-            stmt = stmt.where(
-                Producto.id.in_(
-                    select(ProductoCategoria.producto_id).where(
-                        ProductoCategoria.categoria_id == categoria_id
-                    )
-                )
-            )
+        stmt = self._with_relations()
         stmt = stmt.offset(skip).limit(limit).order_by(Producto.id)
         return list(self.session.exec(stmt).all())
 

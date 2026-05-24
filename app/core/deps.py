@@ -11,6 +11,7 @@ from app.modules.usuario.repository import UsuarioRepository
 
 
 ACCESS_COOKIE_NAME = "access_token"
+REFRESH_COOKIE_NAME = "refresh_token"
 
 
 _credentials_exception = HTTPException(

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Path, Query, status
 
@@ -16,23 +15,8 @@ router = APIRouter(prefix="/productos", tags=["productos"])
 def listar_productos(
     skip: Annotated[int, Query(ge=0, description="Registros a saltar")] = 0,
     limit: Annotated[int, Query(ge=1, le=100, description="Máximo por página")] = 50,
-    q: Annotated[Optional[str], Query(max_length=150, description="Filtro parcial por nombre")] = None,
-    disponible: Annotated[Optional[bool], Query(description="Filtrar por disponibilidad")] = None,
-    precio_min: Annotated[Optional[Decimal], Query(ge=0, description="Precio mínimo inclusivo")] = None,
-    precio_max: Annotated[Optional[Decimal], Query(ge=0, description="Precio máximo inclusivo")] = None,
-    categoria_id: Annotated[Optional[int], Query(ge=1, description="Filtrar productos asociados a una categoría")] = None,
-    incluir_eliminados: Annotated[bool, Query(description="Si true, incluye productos con soft-delete")] = False,
 ) -> list[ProductoRead]:
-    return service.list_productos(
-        skip=skip,
-        limit=limit,
-        q=q,
-        disponible=disponible,
-        precio_min=precio_min,
-        precio_max=precio_max,
-        categoria_id=categoria_id,
-        incluir_eliminados=incluir_eliminados,
-    )
+    return service.list_productos(skip=skip, limit=limit)
 
 
 @router.get("/{producto_id}", response_model=ProductoRead)
