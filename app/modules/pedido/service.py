@@ -1,19 +1,12 @@
 from __future__ import annotations
-
 from decimal import Decimal
 from typing import Optional
-
 from fastapi import HTTPException
 from sqlmodel import select
 
 from app.core.uow import UnitOfWork
 from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
-from app.modules.pedido.schema import (
-    DetallePedidoRead,
-    HistorialRead,
-    PedidoCreate,
-    PedidoRead,
-)
+from app.modules.pedido.schema import DetallePedidoRead, HistorialRead, PedidoCreate, PedidoRead
 from app.modules.producto.model import Producto
 
 
