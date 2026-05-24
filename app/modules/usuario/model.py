@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy import CHAR, Column
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlmodel import Field, Relationship, SQLModel
@@ -20,10 +18,7 @@ class Usuario(SQLModel, table=True):
     # Primary Key
     # -------------------------------------------------------------------------
 
-    id: int | None = Field(
-        default=None,
-        primary_key=True,
-    )
+    id: Optional[int] = Field(default=None, primary_key=True)
 
     # -------------------------------------------------------------------------
     # Información personal
@@ -32,7 +27,7 @@ class Usuario(SQLModel, table=True):
     nombre: str = Field(max_length=80, nullable=False)
     apellido: str = Field(max_length=80, nullable=False)
     email: str = Field(max_length=254, nullable=False, unique=True, index=True)
-    celular: str | None = Field(default=None, max_length=20, nullable=True)
+    celular: Optional[str] = Field(default=None, max_length=20, nullable=True)
 
     # -------------------------------------------------------------------------
     # Seguridad
@@ -57,10 +52,7 @@ class Usuario(SQLModel, table=True):
     )
 
     # Soft-delete — no figura en el UML pero se conserva por decisión de diseño
-    deleted_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(TIMESTAMP(timezone=True), nullable=False)
-    )
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=False))
 
     # -------------------------------------------------------------------------
     # Relaciones
