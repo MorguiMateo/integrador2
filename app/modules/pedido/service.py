@@ -69,6 +69,8 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
                     ),
                 )
+            producto.stock_cantidad -= item.cantidad
+            uow.session.add(producto)
             detalles.append(DetallePedido(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
@@ -142,6 +144,14 @@ def _aplicar_transicion(
 
     estado_anterior = pedido.estado_codigo
     pedido.estado_codigo = estado_hacia
+
+    if estado_hacia == "CANCELADO":
+        for detalle in pedido.detalles:
+            producto = uow.session.get(Producto, detalle.producto_id)
+            if producto is not None:
+                producto.stock_cantidad += detalle.cantidad
+                uow.session.add(producto)
+
     uow.session.add(pedido)
     uow.session.add(HistorialEstadoPedido(
         pedido_id=pedido.id,
