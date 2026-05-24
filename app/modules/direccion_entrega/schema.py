@@ -1,58 +1,42 @@
 from datetime import datetime
-
+from typing import Optional
 from sqlmodel import SQLModel
 
 
 class DireccionCreate(SQLModel):
-    """
-    Schema para crear una dirección de entrega.
-    """
-
-    alias: str | None = None
+    alias: Optional[str] = None
     linea1: str
-    linea2: str | None = None
+    linea2: Optional[str] = None
     ciudad: str
-    provincia: str | None = None
-    codigo_postal: str | None = None
-    latitud: float | None = None
-    longitud: float | None = None
+    provincia: Optional[str] = None
+    codigo_postal: Optional[str] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
     es_principal: bool = False
 
 
 class DireccionUpdate(SQLModel):
-    """
-    Schema para actualización parcial de una dirección.
-
-    Todos los campos son opcionales.
-    """
-
-    alias: str | None = None
-    linea1: str | None = None
-    linea2: str | None = None
-    ciudad: str | None = None
-    provincia: str | None = None
-    codigo_postal: str | None = None
-    latitud: float | None = None
-    longitud: float | None = None
-    es_principal: bool | None = None
+    alias: Optional[str] = None
+    linea1: Optional[str] = None
+    linea2: Optional[str] = None
+    ciudad: Optional[str] = None
+    provincia: Optional[str] = None
+    codigo_postal: Optional[str] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
+    es_principal: Optional[bool] = None
 
 
 class DireccionPublic(SQLModel):
-    """
-    Schema público de dirección de entrega.
-
-    Utilizado como response_model en FastAPI.
-    """
-
     id: int
     usuario_id: int
-    alias: str | None
+    alias: Optional[str]
     linea1: str
-    linea2: str | None
+    linea2: Optional[str]
     ciudad: str
-    provincia: str | None
-    codigo_postal: str | None
-    latitud: float | None
-    longitud: float | None
+    provincia: Optional[str]
+    codigo_postal: Optional[str]
+    latitud: Optional[float]
+    longitud: Optional[float]
     es_principal: bool
     created_at: datetime

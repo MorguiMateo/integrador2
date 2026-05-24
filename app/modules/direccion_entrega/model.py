@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import TIMESTAMPTZ
 from sqlmodel import Field, Relationship, SQLModel
@@ -25,10 +23,7 @@ class DireccionEntrega(SQLModel, table=True):
     # Primary Key
     # -------------------------------------------------------------------------
 
-    id: int | None = Field(
-        default=None,
-        primary_key=True,
-    )
+    id: Optional[int] = Field(default=None, primary_key=True)
 
     # -------------------------------------------------------------------------
     # Foreign Key
@@ -44,53 +39,31 @@ class DireccionEntrega(SQLModel, table=True):
     # Datos de dirección
     # -------------------------------------------------------------------------
 
-    alias: str | None = Field(
-        default=None,
-        max_length=60,
-        nullable=True,
-    )
+    alias: Optional[str] = Field(default=None, max_length=60, nullable=True)
 
     linea1: str = Field(
         max_length=120,
         nullable=False,
     )
 
-    linea2: str | None = Field(
-        default=None,
-        max_length=120,
-        nullable=True,
-    )
+    linea2: Optional[str] = Field(default=None, max_length=120, nullable=True)
 
     ciudad: str = Field(
         max_length=80,
         nullable=False,
     )
 
-    provincia: str | None = Field(
-        default=None,
-        max_length=80,
-        nullable=True,
-    )
+    provincia: Optional[str] = Field(default=None, max_length=80, nullable=True)
 
-    codigo_postal: str | None = Field(
-        default=None,
-        max_length=10,
-        nullable=True,
-    )
+    codigo_postal: Optional[str] = Field(default=None, max_length=10, nullable=True)
 
     # -------------------------------------------------------------------------
     # Geolocalización
     # -------------------------------------------------------------------------
 
-    latitud: float | None = Field(
-        default=None,
-        nullable=True,
-    )
+    latitud: Optional[float] = Field(default=None, nullable=True)
 
-    longitud: float | None = Field(
-        default=None,
-        nullable=True,
-    )
+    longitud: Optional[float] = Field(default=None, nullable=True)
 
     # -------------------------------------------------------------------------
     # Principal
@@ -115,10 +88,7 @@ class DireccionEntrega(SQLModel, table=True):
         sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=False),
     )
 
-    deleted_at: datetime | None = Field(
-        default=None,
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=True),
-    )
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=True))
 
     # -------------------------------------------------------------------------
     # Relaciones
