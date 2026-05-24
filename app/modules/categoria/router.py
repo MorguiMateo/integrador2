@@ -1,9 +1,6 @@
 from __future__ import annotations
-
 from typing import Annotated, Optional
-
 from fastapi import APIRouter, Path, Query, status
-
 from app.modules.categoria import service
 from app.modules.categoria.schema import CategoriaCreate, CategoriaRead, CategoriaUpdate
 
