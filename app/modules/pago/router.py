@@ -26,6 +26,6 @@ def webhook_mercadopago(payload: dict):
         pago.mp_status = "approved"
         uow.session.add(pago)
 
-        avanzar_estado(uow, pago.pedido_id, "CONFIRMADO", None, None)
+        avanzar_estado(pago.pedido_id, "CONFIRMADO", None, None)
 
     return {"status": "ok"}

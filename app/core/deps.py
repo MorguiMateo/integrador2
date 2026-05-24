@@ -8,7 +8,7 @@ from app.core.database import get_session
 from app.modules.usuario.model import Usuario
 from app.modules.usuario.repository import UsuarioRepository
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 _credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
