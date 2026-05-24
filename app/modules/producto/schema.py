@@ -5,9 +5,9 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.types import MoneyDecimal, QuantityDecimal
 from app.modules.categoria.schema import CategoriaRead
 from app.modules.ingrediente.schema import IngredienteRead
+from app.modules.unidad_medida.schema import UnidadMedidaRead
 
 
 class ProductoCategoriaCreate(BaseModel):
@@ -25,14 +25,14 @@ class ProductoCategoriaRead(BaseModel):
 class ProductoIngredienteCreate(BaseModel):
     ingrediente_id: int = Field(ge=1)
     es_removible: bool = False
-    cantidad: QuantityDecimal = Field(gt=0, max_digits=10, decimal_places=3)
+    cantidad: float = Field(gt=0)
     unidad_medida_id: int = Field(ge=1)
 
 
 class ProductoIngredienteRead(BaseModel):
     ingrediente: IngredienteRead
     es_removible: bool
-    cantidad: QuantityDecimal
+    cantidad: float
     unidad_medida_id: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -41,15 +41,15 @@ class ProductoIngredienteRead(BaseModel):
 class ProductoBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: MoneyDecimal = Field(ge=0, max_digits=10, decimal_places=2)
-    imagenes_url: list[str] = Field(default_factory=list)
+    precio_base: float = Field(ge=0)
+    imagenes_url: list[str] = []
     stock_cantidad: int = Field(default=0, ge=0)
     disponible: bool = True
 
 
 class ProductoCreate(ProductoBase):
-    categorias: list[ProductoCategoriaCreate] = Field(default_factory=list)
-    ingredientes: list[ProductoIngredienteCreate] = Field(default_factory=list)
+    categorias: list[ProductoCategoriaCreate] = []
+    ingredientes: list[ProductoIngredienteCreate] = []
     unidad_venta_id: Optional[int] = None
 
 
@@ -61,6 +61,7 @@ class ProductoRead(ProductoBase):
     categorias: list[ProductoCategoriaRead] = []
     ingredientes: list[ProductoIngredienteRead] = []
     unidad_venta_id: Optional[int] = None
+    unidad_venta: Optional[UnidadMedidaRead] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -68,7 +69,7 @@ class ProductoRead(ProductoBase):
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = Field(default=None, min_length=2, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: Optional[MoneyDecimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
+    precio_base: Optional[float] = Field(default=None, ge=0)
     imagenes_url: Optional[list[str]] = None
     stock_cantidad: Optional[int] = Field(default=None, ge=0)
     disponible: Optional[bool] = None

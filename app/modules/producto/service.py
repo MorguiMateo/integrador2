@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Optional
 
 from fastapi import HTTPException
@@ -18,6 +17,7 @@ from app.modules.producto.schema import (
     ProductoRead,
     ProductoUpdate,
 )
+from app.modules.unidad_medida.schema import UnidadMedidaRead
 
 
 def _to_read(producto: Producto) -> ProductoRead:
@@ -33,6 +33,11 @@ def _to_read(producto: Producto) -> ProductoRead:
         updated_at=producto.updated_at,
         deleted_at=producto.deleted_at,
         unidad_venta_id=producto.unidad_venta_id,
+        unidad_venta=(
+            UnidadMedidaRead.model_validate(producto.unidad_venta)
+            if producto.unidad_venta is not None
+            else None
+        ),
         categorias=[ProductoCategoriaRead.model_validate(l) for l in producto.categoria_links],
         ingredientes=[ProductoIngredienteRead.model_validate(l) for l in producto.ingrediente_links],
     )
@@ -42,24 +47,9 @@ def list_productos(
     *,
     skip: int = 0,
     limit: int = 50,
-    q: Optional[str] = None,
-    disponible: Optional[bool] = None,
-    precio_min: Optional[Decimal] = None,
-    precio_max: Optional[Decimal] = None,
-    categoria_id: Optional[int] = None,
-    incluir_eliminados: bool = False,
 ) -> list[ProductoRead]:
     with UnitOfWork() as uow:
-        productos = uow.productos.list_with_relations(
-            skip=skip,
-            limit=limit,
-            q=q,
-            disponible=disponible,
-            precio_min=precio_min,
-            precio_max=precio_max,
-            categoria_id=categoria_id,
-            incluir_eliminados=incluir_eliminados,
-        )
+        productos = uow.productos.list_with_relations(skip=skip, limit=limit)
         return [_to_read(p) for p in productos]
 
 
@@ -170,7 +160,7 @@ def create_producto(data: ProductoCreate) -> ProductoRead:
                     imagenes_url=list(data.imagenes_url),
                     stock_cantidad=data.stock_cantidad,
                     disponible=data.disponible,
-                    unidad_venta_id=data.unidad_venta_id,
+                    unidad_venta_id=data.unidad_venta_id, 
                 )
             )
             for item in data.categorias:

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, Numeric, func
+from sqlalchemy import Column, DateTime, Float, func
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -34,8 +33,8 @@ class ProductoIngrediente(SQLModel, table=True):
     ingrediente_id: int = Field(foreign_key="ingredientes.id", primary_key=True)
     es_removible: bool = Field(default=False, nullable=False)
     unidad_medida_id: int = Field(foreign_key="unidad_medidas.id", nullable=False)
-    cantidad: Decimal = Field(
-        sa_column=Column(Numeric(10, 3), nullable=False),
+    cantidad: float = Field(
+        sa_column=Column(Float, nullable=False),
     )
 
     producto: Producto = Relationship(back_populates="ingrediente_links")
