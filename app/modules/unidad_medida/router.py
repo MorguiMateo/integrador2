@@ -1,9 +1,6 @@
 from __future__ import annotations
-
 from typing import Annotated
-
 from fastapi import APIRouter, Query, status
-
 from app.modules.unidad_medida import service
 from app.modules.unidad_medida.schema import UnidadMedidaCreate, UnidadMedidaRead
 
