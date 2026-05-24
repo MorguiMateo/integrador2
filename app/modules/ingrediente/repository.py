@@ -1,21 +1,17 @@
 from __future__ import annotations
+from typing import Optional
 from sqlmodel import select
 from app.core.repository import BaseRepository
 from app.modules.ingrediente.model import Ingrediente
 
+
 class IngredienteRepository(BaseRepository[Ingrediente]):
     model = Ingrediente
 
+    def base_stmt(self, *, include_deleted: bool = False):
+        return select(self.model)
 
-    def list(
-        self,
-        *,
-        skip: int = 0,
-        limit: int = 50,
-        nombre: str | None = None,
-        es_alergeno: bool | None = None,
-    ) -> list[Ingrediente]:
-
+    def list(self, *, skip: int = 0, limit: int = 50, nombre: Optional[str] = None, es_alergeno: Optional[bool] = None) -> list[Ingrediente]:
         stmt = self.base_stmt()
         if nombre:
             stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
@@ -24,5 +20,10 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         stmt = stmt.offset(skip).limit(limit).order_by(Ingrediente.id)
         return list(self.session.exec(stmt).all())
 
-    def base_stmt(self, *, include_deleted: bool = False):
-        return select(self.model)
+    def delete(self, ingrediente_id: int) -> bool:
+        obj = self.session.get(self.model, ingrediente_id)
+        if obj is None:
+            return False
+        self.session.delete(obj)
+        self.session.flush()
+        return True

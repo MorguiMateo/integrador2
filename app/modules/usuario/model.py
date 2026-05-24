@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CHAR, Column
-from sqlalchemy.dialects.postgresql import TIMESTAMPTZ
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -48,18 +48,18 @@ class Usuario(SQLModel, table=True):
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=False),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False)
     )
 
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=False),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False)
     )
 
     # Soft-delete — no figura en el UML pero se conserva por decisión de diseño
     deleted_at: datetime | None = Field(
         default=None,
-        sa_column=Column(TIMESTAMPTZ(timezone=True), nullable=True),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False)
     )
 
     # -------------------------------------------------------------------------
