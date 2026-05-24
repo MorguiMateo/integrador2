@@ -1,9 +1,6 @@
 from __future__ import annotations
-
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, Path, status
-
 from app.modules.auth.dependencies import get_current_active_user
 from app.modules.pedido import service
 from app.modules.pedido.schema import (
