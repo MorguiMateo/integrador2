@@ -1,10 +1,7 @@
 from __future__ import annotations
-
 from typing import Optional
-
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-
 from app.core.uow import UnitOfWork
 from app.modules.categoria.model import Categoria
 from app.modules.categoria.schema import CategoriaCreate, CategoriaRead, CategoriaUpdate
