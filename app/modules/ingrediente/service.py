@@ -1,10 +1,7 @@
 from __future__ import annotations
-
 from typing import Optional
-
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-
 from app.core.uow import UnitOfWork
 from app.modules.ingrediente.model import Ingrediente
 from app.modules.ingrediente.schema import IngredienteCreate, IngredienteRead, IngredienteUpdate

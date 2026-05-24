@@ -11,7 +11,14 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def base_stmt(self, *, include_deleted: bool = False):
         return select(self.model)
 
-    def list(self, *, skip: int = 0, limit: int = 50, nombre: Optional[str] = None, es_alergeno: Optional[bool] = None) -> list[Ingrediente]:
+    def list(
+        self,
+        *,
+        skip: int = 0,
+        limit: int = 50,
+        nombre: Optional[str] = None,
+        es_alergeno: Optional[bool] = None,
+    ) -> list[Ingrediente]:
         stmt = self.base_stmt()
         if nombre:
             stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))

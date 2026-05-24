@@ -1,13 +1,12 @@
 from __future__ import annotations
-
 from datetime import datetime
-
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class IngredienteBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=100)
-    descripcion: str | None = None
+    descripcion: Optional[str] = None
     es_alergeno: bool = False
 
 
@@ -16,9 +15,9 @@ class IngredienteCreate(IngredienteBase):
 
 
 class IngredienteUpdate(BaseModel):
-    nombre: str | None = Field(default=None, min_length=2, max_length=100)
-    descripcion: str | None = None
-    es_alergeno: bool | None = None
+    nombre: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    descripcion: Optional[str] = None
+    es_alergeno: Optional[bool] = None
 
 
 class IngredienteRead(IngredienteBase):
@@ -27,12 +26,3 @@ class IngredienteRead(IngredienteBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-##saque:
- 
-#deleted_at: datetime | None = None
-#el @computed_field
-#el @property
-#y tambienn saque el:
-"""def eliminado(self) -> bool:
-    return self.deleted_at is not None"""
