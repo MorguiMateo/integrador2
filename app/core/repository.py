@@ -16,7 +16,7 @@ class BaseRepository(Generic[ModelT]):
     def base_stmt(self, *, include_deleted: bool = False) -> SelectOfScalar[ModelT]:
         stmt = select(self.model)
         if not include_deleted:
-            stmt = stmt.where(self.model.deleted_at == None)  # noqa: E711
+            stmt = stmt.where(self.model.deleted_at == None)
         return stmt
 
     def get(self, id: int) -> Optional[ModelT]:
@@ -45,6 +45,6 @@ class BaseRepository(Generic[ModelT]):
             return set()
         stmt = select(self.model.id).where(
             self.model.id.in_(ids),
-            self.model.deleted_at == None,  # noqa: E711
+            self.model.deleted_at == None,
         )
         return set(self.session.exec(stmt).all())

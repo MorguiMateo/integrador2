@@ -1,15 +1,3 @@
-"""
-app/db/seed.py
-
-Pobla la base de datos con datos iniciales del sistema.
-
-Idempotente: puede ejecutarse múltiples veces sin duplicar datos
-ni lanzar errores. Usa session.get() para verificar existencia
-antes de insertar.
-
-Uso manual:
-    python -m app.db.seed
-"""
 
 from sqlmodel import Session, select
 from app.core.database import engine
@@ -22,9 +10,6 @@ from app.modules.usuario_rol.model import UsuarioRol
 from app.core.security import get_password_hash
 
 
-# -----------------------------------------------------------------------------
-# Datos
-# -----------------------------------------------------------------------------
 
 ROLES = [
     {
@@ -74,9 +59,6 @@ FORMAS_PAGO = [
 ]
 
 
-# -----------------------------------------------------------------------------
-# Seeders
-# -----------------------------------------------------------------------------
 
 
 def _seed_roles(session: Session) -> None:
@@ -151,22 +133,9 @@ def _seed_admin(session: Session) -> None:
     session.flush()
 
 
-# -----------------------------------------------------------------------------
-# Entry point
-# -----------------------------------------------------------------------------
 
 
 def run_seed(session: Session) -> None:
-    """
-    Ejecuta todos los seeders en orden.
-
-    Idempotente: verifica existencia antes de insertar.
-    No hace commit — el llamador es responsable del commit.
-
-    Args:
-        session (Session):
-            Sesión de base de datos activa.
-    """
 
     _seed_roles(session)
     _seed_unidades_medida(session)

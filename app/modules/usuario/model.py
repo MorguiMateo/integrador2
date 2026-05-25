@@ -12,32 +12,20 @@ if TYPE_CHECKING:
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
-    # -------------------------------------------------------------------------
-    # Primary Key
-    # -------------------------------------------------------------------------
 
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    # -------------------------------------------------------------------------
-    # Información personal
-    # -------------------------------------------------------------------------
 
     nombre: str = Field(max_length=80, nullable=False)
     apellido: str = Field(max_length=80, nullable=False)
     email: str = Field(max_length=254, nullable=False, unique=True, index=True)
     celular: Optional[str] = Field(default=None, max_length=20, nullable=True)
 
-    # -------------------------------------------------------------------------
-    # Seguridad
-    # -------------------------------------------------------------------------
 
     password_hash: str = Field(
         sa_column=Column(CHAR(60), nullable=False)
     )
 
-    # -------------------------------------------------------------------------
-    # Auditoría
-    # -------------------------------------------------------------------------
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -49,12 +37,8 @@ class Usuario(SQLModel, table=True):
         sa_column=Column(TIMESTAMP(timezone=True), nullable=False)
     )
 
-    # Soft-delete — no figura en el UML pero se conserva por decisión de diseño
     deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=True))
 
-    # -------------------------------------------------------------------------
-    # Relaciones
-    # -------------------------------------------------------------------------
 
     roles_link: list["UsuarioRol"] = Relationship(
         back_populates="usuario",
@@ -65,9 +49,6 @@ class Usuario(SQLModel, table=True):
     )
     direcciones: list["DireccionEntrega"] = Relationship(back_populates="usuario")
 
-    # -------------------------------------------------------------------------
-    # Propiedades derivadas
-    # -------------------------------------------------------------------------
 
     @property
     def roles(self) -> list[str]:

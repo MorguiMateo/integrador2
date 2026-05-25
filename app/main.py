@@ -34,7 +34,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS: localhost o 127.0.0.1 y cualquier puerto en desarrollo (Vite puede servir en ambos).
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
@@ -44,7 +43,6 @@ app.add_middleware(
 )
 
 
-# Cada módulo expone su router y acá los monto en la app.
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(categoria_router, prefix="/api/v1")

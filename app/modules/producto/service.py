@@ -64,8 +64,6 @@ def set_disponibilidad(producto_id: int, disponible: bool) -> ProductoRead:
 
 
 def set_stock(producto_id: int, stock_cantidad: int) -> ProductoRead:
-    """Actualiza solo el stock. Habilitado para ADMIN y STOCK (gestión de stock),
-    sin permitir tocar precio/nombre/categorías como sí lo hace el PUT (ADMIN-only)."""
     with UnitOfWork() as uow:
         producto = uow.productos.get(producto_id)
         if producto is None:

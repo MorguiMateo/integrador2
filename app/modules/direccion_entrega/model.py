@@ -9,24 +9,12 @@ if TYPE_CHECKING:
 
 
 class DireccionEntrega(SQLModel, table=True):
-    """
-    Dirección de entrega asociada a un usuario.
-
-    Un usuario puede tener múltiples direcciones,
-    pero solo una puede estar marcada como principal.
-    """
 
     __tablename__ = "direcciones_entrega"
 
-    # -------------------------------------------------------------------------
-    # Primary Key
-    # -------------------------------------------------------------------------
 
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    # -------------------------------------------------------------------------
-    # Foreign Key
-    # -------------------------------------------------------------------------
 
     usuario_id: int = Field(
         foreign_key="usuarios.id",
@@ -34,9 +22,6 @@ class DireccionEntrega(SQLModel, table=True):
         index=True,
     )
 
-    # -------------------------------------------------------------------------
-    # Datos de dirección
-    # -------------------------------------------------------------------------
 
     alias: Optional[str] = Field(default=None, max_length=60, nullable=True)
 
@@ -56,26 +41,17 @@ class DireccionEntrega(SQLModel, table=True):
 
     codigo_postal: Optional[str] = Field(default=None, max_length=10, nullable=True)
 
-    # -------------------------------------------------------------------------
-    # Geolocalización
-    # -------------------------------------------------------------------------
 
     latitud: Optional[float] = Field(default=None, nullable=True)
 
     longitud: Optional[float] = Field(default=None, nullable=True)
 
-    # -------------------------------------------------------------------------
-    # Principal
-    # -------------------------------------------------------------------------
 
     es_principal: bool = Field(
         default=False,
         nullable=False,
     )
 
-    # -------------------------------------------------------------------------
-    # Auditoría
-    # -------------------------------------------------------------------------
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -89,9 +65,6 @@ class DireccionEntrega(SQLModel, table=True):
 
     deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), nullable=True))
 
-    # -------------------------------------------------------------------------
-    # Relaciones
-    # -------------------------------------------------------------------------
 
     usuario: "Usuario" = Relationship(
         back_populates="direcciones"

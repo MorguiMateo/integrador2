@@ -5,28 +5,12 @@ from app.modules.usuario.model import Usuario
 
 
 class UsuarioRepository(BaseRepository[Usuario]):
-    """
-    Repository especializado para Usuario.
-    """
     model = Usuario
 
     def get_by_email(
         self,
         email: str,
     ) -> Usuario | None:
-        """
-        Busca un usuario por email.
-
-        Excluye usuarios soft-deleted.
-
-        Args:
-            email (str):
-                Email del usuario.
-
-        Returns:
-            Usuario | None:
-                Usuario encontrado o None.
-        """
 
         statement = (
             select(Usuario)

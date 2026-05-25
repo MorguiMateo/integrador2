@@ -12,7 +12,6 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         return select(self.model)
 
     def active_ids(self, ids: list[int]) -> set[int]:
-        # Ingrediente no tiene soft-delete (deleted_at): no se filtra por él.
         if not ids:
             return set()
         stmt = select(self.model.id).where(self.model.id.in_(ids))
@@ -55,14 +54,9 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         if obj is None:
             return False
 
-        # Elimina los registros de la tabla link primero usando SQL directo.
-        # Si se usa session.delete(obj) sin esto, SQLAlchemy intenta hacer SET NULL
-        # en producto_ingrediente.ingrediente_id que es PK, lo que lanza AssertionError.
         self.session.exec(
             sql_delete(ProductoIngrediente).where(ProductoIngrediente.ingrediente_id == ingrediente_id)
         )
-        # Expira el estado cacheado del objeto para que SQLAlchemy no vea
-        # producto_links en memoria al procesar el delete.
         self.session.expire(obj)
 
         self.session.delete(obj)

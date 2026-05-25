@@ -70,7 +70,6 @@ def avanzar_estado(
     payload: AvanzarEstadoRequest,
     current_user: Usuario = Depends(get_current_active_user),
 ) -> PedidoRead:
-    """Avance manual de estado. Reservado a ADMIN o PEDIDOS."""
 
     return service.avanzar_estado(
         pedido_id=pedido_id,
@@ -89,7 +88,6 @@ def cancelar_pedido(
     payload: CancelarPedidoRequest,
     current_user: Usuario = Depends(get_current_active_user),
 ) -> PedidoRead:
-    """Cancelación por el propio cliente (solo PENDIENTE o CONFIRMADO)."""
 
     return service.cancelar_pedido(
         pedido_id=pedido_id,
