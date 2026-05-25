@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -22,8 +20,8 @@ class ProductoCategoria(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False, server_default=func.now()),
     )
 
-    producto: Producto = Relationship(back_populates="categoria_links")
-    categoria: Categoria = Relationship(back_populates="producto_links")
+    producto: "Producto" = Relationship(back_populates="categoria_links")
+    categoria: "Categoria" = Relationship(back_populates="producto_links")
 
 
 class ProductoIngrediente(SQLModel, table=True):
@@ -37,5 +35,5 @@ class ProductoIngrediente(SQLModel, table=True):
         sa_column=Column(Float, nullable=False),
     )
 
-    producto: Producto = Relationship(back_populates="ingrediente_links")
-    ingrediente: Ingrediente = Relationship(back_populates="producto_links")
+    producto: "Producto" = Relationship(back_populates="ingrediente_links")
+    ingrediente: "Ingrediente" = Relationship(back_populates="producto_links")

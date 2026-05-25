@@ -50,7 +50,10 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
     with UnitOfWork() as uow:
         detalles = []
         for item in data.items:
-            producto = uow.session.get(Producto, item.producto_id)
+            # with_for_update bloquea la fila del producto (SELECT ... FOR UPDATE)
+            # hasta el commit del pedido, así dos checkouts simultáneos del mismo
+            # producto se serializan y no se puede sobrevender el stock.
+            producto = uow.session.get(Producto, item.producto_id, with_for_update=True)
             if producto is None or producto.deleted_at is not None:
                 raise HTTPException(
                     status_code=422,
@@ -69,16 +72,25 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
                     ),
                 )
+            # Producto.precio_base es float, pero las columnas de montos son Numeric (Decimal).
+            # Convertimos vía str para evitar imprecisión binaria float -> Decimal.
+            precio_unit = Decimal(str(producto.precio_base))
             detalles.append(DetallePedido(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
                 nombre_snapshot=producto.nombre,
-                precio_snapshot=producto.precio_base,
-                subtotal_snap=producto.precio_base * item.cantidad,
+                precio_snapshot=precio_unit,
+                subtotal_snap=precio_unit * item.cantidad,
                 personalizacion=item.personalizacion or [],
             ))
 
-        subtotal = sum(d.subtotal_snap for d in detalles)
+            # Descuenta el stock reservado por el pedido. Si un mismo producto
+            # aparece en varios items, el identity-map de la sesión devuelve la
+            # misma instancia, así que el descuento se acumula y la validación de
+            # arriba ya ve el stock reducido en la siguiente iteración.
+            producto.stock_cantidad -= item.cantidad
+
+        subtotal = sum((d.subtotal_snap for d in detalles), Decimal("0.00"))
         descuento = Decimal("0.00")
         costo_envio = Decimal("50.00")
 
@@ -109,11 +121,28 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
         return PedidoRead.model_validate(pedido)
 
 
-def list_pedidos(usuario_id: int, roles: Iterable[str]) -> list[PedidoRead]:
+def list_pedidos(
+    usuario_id: int,
+    roles: Iterable[str],
+    *,
+    skip: int = 0,
+    limit: int = 50,
+    estado: Optional[str] = None,
+) -> list[PedidoRead]:
     with UnitOfWork() as uow:
         stmt = select(Pedido).where(Pedido.deleted_at.is_(None))
         if not _puede_ver_todos(roles):
             stmt = stmt.where(Pedido.usuario_id == usuario_id)
+        if estado:
+            stmt = stmt.where(Pedido.estado_codigo == estado)
+        # Orden estable y determinista: sin esto, PostgreSQL reordena las filas
+        # tras cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar.
+        # id como desempate porque created_at puede empatar (mismo segundo).
+        stmt = (
+            stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         pedidos = uow.session.exec(stmt).all()
         return [PedidoRead.model_validate(p) for p in pedidos]
 
@@ -125,6 +154,17 @@ def get_pedido(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> PedidoR
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
         _assert_puede_ver(pedido, usuario_id, roles)
         return PedidoRead.model_validate(pedido)
+
+
+def _reponer_stock(uow, pedido: Pedido) -> None:
+    """Devuelve al stock las cantidades de cada línea del pedido. Se invoca al
+    cancelar: las unidades que create_pedido había descontado vuelven a quedar
+    disponibles. with_for_update serializa con checkouts concurrentes del mismo
+    producto."""
+    for det in pedido.detalles:
+        producto = uow.session.get(Producto, det.producto_id, with_for_update=True)
+        if producto is not None:
+            producto.stock_cantidad += det.cantidad
 
 
 def _aplicar_transicion(
@@ -139,6 +179,11 @@ def _aplicar_transicion(
             status_code=422,
             detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
         )
+
+    # Al cancelar devolvemos el stock reservado por el pedido. Es idempotente:
+    # el FSM no permite salir de CANCELADO, así que nunca se repone dos veces.
+    if estado_hacia == "CANCELADO":
+        _reponer_stock(uow, pedido)
 
     estado_anterior = pedido.estado_codigo
     pedido.estado_codigo = estado_hacia

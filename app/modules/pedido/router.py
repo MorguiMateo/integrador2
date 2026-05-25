@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Path, status
+from fastapi import APIRouter, Depends, Path, Query, status
 
 from app.core.deps import get_current_active_user
 from app.modules.pedido import service
@@ -37,8 +37,17 @@ def crear_pedido(
 )
 def listar_pedidos(
     current_user: Usuario = Depends(get_current_active_user),
+    skip: Annotated[int, Query(ge=0, description="Registros a saltar")] = 0,
+    limit: Annotated[int, Query(ge=1, le=100, description="Máximo por página")] = 50,
+    estado: Annotated[Optional[str], Query(description="Filtrar por estado")] = None,
 ) -> list[PedidoRead]:
-    return service.list_pedidos(current_user.id, current_user.roles)
+    return service.list_pedidos(
+        current_user.id,
+        current_user.roles,
+        skip=skip,
+        limit=limit,
+        estado=estado,
+    )
 
 
 @router.get(

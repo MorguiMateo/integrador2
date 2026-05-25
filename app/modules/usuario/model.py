@@ -1,4 +1,3 @@
-from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import CHAR, Column
@@ -59,7 +58,10 @@ class Usuario(SQLModel, table=True):
 
     roles_link: list["UsuarioRol"] = Relationship(
         back_populates="usuario",
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+            "foreign_keys": "[UsuarioRol.usuario_id]",
+        },
     )
     direcciones: list["DireccionEntrega"] = Relationship(back_populates="usuario")
 
