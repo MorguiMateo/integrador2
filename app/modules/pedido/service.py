@@ -72,8 +72,7 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
                     ),
                 )
-            producto.stock_cantidad -= item.cantidad
-            uow.session.add(producto)
+            precio_unit = Decimal(str(producto.precio_base))
             detalles.append(DetallePedido(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
@@ -82,11 +81,9 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                 subtotal_snap=precio_unit * item.cantidad,
                 personalizacion=item.personalizacion or [],
             ))
-
-            # Descuenta el stock reservado por el pedido. Si un mismo producto
-            # aparece en varios items, el identity-map de la sesión devuelve la
-            # misma instancia, así que el descuento se acumula y la validación de
-            # arriba ya ve el stock reducido en la siguiente iteración.
+            # Si el mismo producto aparece en varios ítems, el identity-map devuelve
+            # la misma instancia: el descuento se acumula y la validación de la
+            # siguiente iteración ya ve el stock reducido.
             producto.stock_cantidad -= item.cantidad
 
         subtotal = sum((d.subtotal_snap for d in detalles), Decimal("0.00"))
@@ -186,13 +183,6 @@ def _aplicar_transicion(
 
     estado_anterior = pedido.estado_codigo
     pedido.estado_codigo = estado_hacia
-
-    if estado_hacia == "CANCELADO":
-        for detalle in pedido.detalles:
-            producto = uow.session.get(Producto, detalle.producto_id)
-            if producto is not None:
-                producto.stock_cantidad += detalle.cantidad
-                uow.session.add(producto)
 
     uow.session.add(pedido)
     uow.session.add(HistorialEstadoPedido(

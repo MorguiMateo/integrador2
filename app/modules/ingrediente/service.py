@@ -45,9 +45,12 @@ def update_ingrediente(ingrediente_id: int, data: IngredienteUpdate) -> Ingredie
 
 
 def delete_ingrediente(ingrediente_id: int) -> None:
-    try:
-        with UnitOfWork() as uow:
-            if not uow.ingredientes.delete(ingrediente_id):
-                raise HTTPException(status_code=404, detail="Ingrediente no encontrado")
-    except IntegrityError:
-        raise HTTPException(status_code=409, detail="No se puede eliminar: el ingrediente está en uso por un producto")
+    with UnitOfWork() as uow:
+        if uow.ingredientes.get(ingrediente_id) is None:
+            raise HTTPException(status_code=404, detail="Ingrediente no encontrado")
+        if uow.ingredientes.tiene_productos_activos(ingrediente_id):
+            raise HTTPException(
+                status_code=409,
+                detail="No se puede eliminar: el ingrediente está en uso por un producto activo.",
+            )
+        uow.ingredientes.delete(ingrediente_id)
