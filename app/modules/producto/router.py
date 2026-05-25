@@ -58,6 +58,18 @@ def cambiar_disponibilidad(
     return service.set_disponibilidad(producto_id, disponible)
 
 
+@router.patch(
+    "/{producto_id}/stock",
+    response_model=ProductoRead,
+    dependencies=[Depends(require_admin_or_stock)],
+)
+def cambiar_stock(
+    producto_id: Annotated[int, Path(ge=1)],
+    stock_cantidad: Annotated[int, Body(embed=True, ge=0, description="Nueva cantidad de stock")],
+) -> ProductoRead:
+    return service.set_stock(producto_id, stock_cantidad)
+
+
 @router.delete(
     "/{producto_id}",
     status_code=status.HTTP_204_NO_CONTENT,

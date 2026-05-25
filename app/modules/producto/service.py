@@ -63,6 +63,18 @@ def set_disponibilidad(producto_id: int, disponible: bool) -> ProductoRead:
         return _to_read(uow.productos.get_with_relations(producto_id))
 
 
+def set_stock(producto_id: int, stock_cantidad: int) -> ProductoRead:
+    """Actualiza solo el stock. Habilitado para ADMIN y STOCK (gestión de stock),
+    sin permitir tocar precio/nombre/categorías como sí lo hace el PUT (ADMIN-only)."""
+    with UnitOfWork() as uow:
+        producto = uow.productos.get(producto_id)
+        if producto is None:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        producto.stock_cantidad = stock_cantidad
+        uow.productos.save(producto)
+        return _to_read(uow.productos.get_with_relations(producto_id))
+
+
 def get_producto(producto_id: int) -> ProductoRead:
     with UnitOfWork() as uow:
         producto = uow.productos.get_with_relations(producto_id)

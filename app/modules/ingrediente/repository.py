@@ -11,6 +11,13 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def base_stmt(self, *, include_deleted: bool = False):
         return select(self.model)
 
+    def active_ids(self, ids: list[int]) -> set[int]:
+        # Ingrediente no tiene soft-delete (deleted_at): no se filtra por él.
+        if not ids:
+            return set()
+        stmt = select(self.model.id).where(self.model.id.in_(ids))
+        return set(self.session.exec(stmt).all())
+
     def list(
         self,
         *,
