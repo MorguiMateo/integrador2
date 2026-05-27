@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
-
+## BaseModel valida datos mientras que SQLModel valida pero tambien crea relaciones ids, etc.
 class IngredienteBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=100)
     descripcion: Optional[str] = None
@@ -25,4 +25,5 @@ class IngredienteRead(IngredienteBase):
     created_at: datetime
     updated_at: datetime
 
+    ## ConfigDict le dice a pydantic que busque los datos leyendo sus atributos con la sintaxis de punto. objeto.atributo
     model_config = ConfigDict(from_attributes=True)

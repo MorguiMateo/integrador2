@@ -1,3 +1,4 @@
+##   - deps.py — contiene las dependencias de autenticación: get_current_user lee y valida el JWT del cookie, y get_current_active_user verifica además que el usuario no esté eliminado.
 from typing import Optional
 
 from fastapi import Cookie, Depends, HTTPException, status

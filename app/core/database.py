@@ -1,3 +1,4 @@
+##   - database.py — crea el engine de conexión a PostgreSQL, define create_db_and_tables para crear todas las tablas al arrancar, y provee get_session para inyectar sesiones vía Depends.
 import os
 
 from dotenv import load_dotenv

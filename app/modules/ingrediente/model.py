@@ -5,7 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from app.modules.producto.link_models import ProductoIngrediente
 
-
+## Modelo de la tabla SQL
 class Ingrediente(SQLModel, table=True):
     __tablename__ = "ingredientes"
 
@@ -26,4 +26,8 @@ class Ingrediente(SQLModel, table=True):
         ),
     )
 
+## producto_links va a contener una lista llena de objetos del tipo ProductoIngrediente
+## Relationship busca de la tabla intermedia los datos ya ordenados
+## back_populates hace que la relacion sea bidireccional. Me permite acceder estando en ingredientes acceder a los atributos de producto y biseversa.
+## si no tiene back_populates desde ingrediente se puede acceder a producto pero desde producto no a ingrediente.
     producto_links: list[ProductoIngrediente] = Relationship(back_populates="ingrediente")

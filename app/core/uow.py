@@ -1,3 +1,4 @@
+##  - uow.py — define UnitOfWork, el context manager que abre una sesión de base de datos, instancia todos los repositories, y al salir hace commit si todo fue bien o rollback si hubo error.f
 from __future__ import annotations
 from types import TracebackType
 from typing import Optional, Type
