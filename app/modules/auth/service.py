@@ -40,12 +40,7 @@ def create_refresh_token(usuario: Usuario) -> str:
 
 
 def decode_refresh_token(token: str) -> str:
-    """
-    Valida un refresh token y devuelve el email (claim `sub`).
-
-    Lanza `JWTError` si el token está expirado, mal firmado, o no es de
-    tipo `refresh` (p. ej. si intentan usar un access token acá).
-    """
+    
     payload = jwt.decode(
         token,
         settings.SECRET_KEY,

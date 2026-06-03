@@ -5,9 +5,6 @@ from app.modules.direccion_entrega.model import DireccionEntrega
 
 
 class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
-    """
-    Repository especializado para DireccionEntrega.
-    """
 
     model = DireccionEntrega
 
@@ -15,16 +12,6 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
         self,
         usuario_id: int,
     ) -> list[DireccionEntrega]:
-        """
-        Lista las direcciones activas de un usuario.
-
-        Args:
-            usuario_id (int):
-                ID del usuario propietario.
-
-        Returns:
-            list[DireccionEntrega]
-        """
 
         statement = (
             self.base_stmt()
@@ -37,21 +24,11 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
         self,
         usuario_id: int,
     ) -> DireccionEntrega | None:
-        """
-        Devuelve la dirección principal activa del usuario.
-
-        Args:
-            usuario_id (int):
-                ID del usuario.
-
-        Returns:
-            DireccionEntrega | None
-        """
 
         statement = (
             self.base_stmt()
             .where(DireccionEntrega.usuario_id == usuario_id)
-            .where(DireccionEntrega.es_principal == True)  # noqa: E712
+            .where(DireccionEntrega.es_principal == True)  
         )
 
         return self.session.exec(statement).first()
@@ -60,16 +37,6 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
         self,
         usuario_id: int,
     ) -> None:
-        """
-        Desmarca la dirección principal actual del usuario.
-
-        Se llama antes de marcar una nueva como principal
-        para garantizar que solo exista una por usuario.
-
-        Args:
-            usuario_id (int):
-                ID del usuario.
-        """
 
         current = self.get_principal(usuario_id)
 

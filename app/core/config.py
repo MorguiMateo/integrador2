@@ -16,8 +16,3 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
-"""
-Carga la configuración desde el .env
-Definimos SeCRET_KEY
-Creamos un singleton settings para que el resto del cógio lo importe directamente
-"""

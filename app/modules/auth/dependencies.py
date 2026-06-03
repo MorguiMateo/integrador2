@@ -16,11 +16,6 @@ def _ensure_roles(usuario: Usuario, allowed: Iterable[str]) -> None:
 
 
 def require_roles(*allowed: str):
-    """
-    Dependencia factory: devuelve una dependencia FastAPI que
-    valida que el usuario autenticado tenga al menos uno de los
-    roles indicados.
-    """
 
     def _dependency(
         current_user: Usuario = Depends(get_current_active_user),

@@ -11,25 +11,6 @@ def create_usuario(
     uow,
     data: UserCreate,
 ) -> Usuario:
-    """
-    Crea un nuevo usuario.
-
-    La contraseña:
-    - entra en texto plano
-    - se transforma en hash bcrypt
-    - el texto plano se descarta inmediatamente
-
-    Args:
-        uow:
-            Unit of Work activo.
-
-        data (UserCreate):
-            Datos de creación.
-
-    Returns:
-        Usuario:
-            Usuario persistido.
-    """
 
     usuario_repository = UsuarioRepository(uow.session)
 
@@ -58,19 +39,6 @@ def get_usuario(
     uow,
     usuario_id: int,
 ) -> Usuario | None:
-    """
-    Obtiene un usuario por ID.
-
-    Args:
-        uow:
-            Unit of Work activo.
-
-        usuario_id (int):
-            ID del usuario.
-
-    Returns:
-        Usuario | None
-    """
 
     usuario_repository = UsuarioRepository(uow.session)
 
@@ -82,22 +50,6 @@ def list_usuarios(
     skip: int = 0,
     limit: int = 100,
 ) -> list[Usuario]:
-    """
-    Lista usuarios paginados.
-
-    Args:
-        uow:
-            Unit of Work activo.
-
-        skip (int):
-            Offset.
-
-        limit (int):
-            Cantidad máxima.
-
-    Returns:
-        list[Usuario]
-    """
 
     usuario_repository = UsuarioRepository(uow.session)
 
@@ -112,27 +64,6 @@ def authenticate_user(
     email: str,
     password: str,
 ) -> Usuario | None:
-    """
-    Autentica un usuario mediante email y contraseña.
-
-    Flujo:
-    1. Busca usuario por email
-    2. Verifica contraseña bcrypt
-    3. Devuelve usuario o None
-
-    Args:
-        uow:
-            Unit of Work activo.
-
-        email (str):
-            Email del usuario.
-
-        password (str):
-            Contraseña en texto plano.
-
-    Returns:
-        Usuario | None
-    """
 
     usuario_repository = UsuarioRepository(uow.session)
 

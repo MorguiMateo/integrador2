@@ -9,39 +9,32 @@ if TYPE_CHECKING:
 
 
 class UsuarioRol(SQLModel, table=True):
-
-    #Tabla intermedia entre usuarios y roles.
+    
     __tablename__ = "usuarios_roles"
-    """
-    Los roles utlizan una PK compuesta para representar el JSON del usuario
-    de forma más simple:
-    {
-    "roles": ["CAJA", "STOCK"]
-    }
-    """
-    usuario_id: int = Field(#ID del usuario al que pertenece el rol
+   
+    usuario_id: int = Field(
         foreign_key="usuarios.id",
         primary_key=True,
     )
 
-    rol_codigo: str = Field(#Código del rol asignado al usuario
+    rol_codigo: str = Field(
         foreign_key="roles.codigo",
         primary_key=True,
         max_length=20,
     )
 
-    asignado_por_id: Optional[int] = Field(#Usuario que asignó el rol, puede ser NULL si fue asignado automáticamente por el sistema
+    asignado_por_id: Optional[int] = Field(
         default=None,
         foreign_key="usuarios.id",
         nullable=True,
     )
 
-    expires_at: Optional[datetime] = Field(#Fecha de expiración del rol. NULL indica que no vence
+    expires_at: Optional[datetime] = Field(
         default=None,
         nullable=True,
     )
 
-    created_at: datetime = Field(#Fecha de creación del registro
+    created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,

@@ -5,19 +5,15 @@ from sqlmodel import SQLModel, Session, create_engine
 
 load_dotenv()
 
-#DATABASE_URL viene del archivo .env; si no existe, usa postgres local por defecto.
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://postgres@localhost:5432/parcial",
 )
 
-#echo=True loguea el SQL en consola;
 engine = create_engine(DATABASE_URL, echo=True)
 
 
 def create_db_and_tables() -> None:
-    # Importaciones necesarias para que SQLModel.metadata registre cada tabla
-    # antes de llamar a create_all. Sin esto, create_all no conoce los modelos.
     from app.modules.rol.model import Rol
     from app.modules.usuario.model import Usuario
     from app.modules.usuario_rol.model import UsuarioRol
@@ -26,13 +22,13 @@ def create_db_and_tables() -> None:
     from app.modules.estado_pedido.model import EstadoPedido
     from app.modules.forma_pago.model import FormaPago
     from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
-    from app.modules.categoria.model import Categoria  # noqa: F401
-    from app.modules.ingrediente.model import Ingrediente  # noqa: F401
-    from app.modules.producto.link_models import (  # noqa: F401
+    from app.modules.categoria.model import Categoria  
+    from app.modules.ingrediente.model import Ingrediente 
+    from app.modules.producto.link_models import (  
         ProductoCategoria,
         ProductoIngrediente,
     )
-    from app.modules.producto.model import Producto  # noqa: F401
+    from app.modules.producto.model import Producto 
 
     SQLModel.metadata.create_all(engine)
 

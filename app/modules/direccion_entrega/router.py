@@ -24,7 +24,6 @@ router = APIRouter(
     tags=["Direcciones"],
 )
 
-
 @router.get(
     "",
     response_model=list[DireccionPublic],
@@ -33,7 +32,6 @@ def get_direcciones(
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
-    """Lista las direcciones de entrega del usuario autenticado."""
 
     with uow:
         return list_direcciones(uow=uow, usuario_id=current_user.id)
@@ -49,10 +47,6 @@ def add_direccion(
     uow: UnitOfWork = Depends(),
     current_user: Usuario = Depends(get_current_active_user),
 ):
-    """Crea una dirección para el usuario autenticado.
-
-    Si ``es_principal=true`` desmarca la anterior antes de persistir.
-    """
 
     with uow:
         return create_direccion(uow=uow, usuario_id=current_user.id, data=data)

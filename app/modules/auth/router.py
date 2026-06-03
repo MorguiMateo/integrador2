@@ -27,10 +27,6 @@ router = APIRouter(
 )
 
 
-# -----------------------------------------------------------------------------
-# Helpers de cookies — centralizan los flags httpOnly/samesite/secure/max_age
-# -----------------------------------------------------------------------------
-
 def _set_access_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=ACCESS_COOKIE_NAME,
@@ -55,10 +51,6 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
     )
 
 
-# -----------------------------------------------------------------------------
-# Registro público — siempre asigna rol CLIENT
-# -----------------------------------------------------------------------------
-
 @router.post(
     "/register",
     response_model=UserPublic,
@@ -74,10 +66,6 @@ def register(
             data=UserCreate(**data.model_dump()),
         )
 
-
-# -----------------------------------------------------------------------------
-# Login — setea cookies httpOnly con el access y el refresh token
-# -----------------------------------------------------------------------------
 
 @router.post(
     "/login",
@@ -106,10 +94,6 @@ def login(
 
         return usuario
 
-
-# -----------------------------------------------------------------------------
-# Refresh — usa la cookie refresh para emitir un nuevo access token
-# -----------------------------------------------------------------------------
 
 @router.post(
     "/refresh",
@@ -147,9 +131,6 @@ def refresh(
         return usuario
 
 
-# -----------------------------------------------------------------------------
-# Logout — borra cookies
-# -----------------------------------------------------------------------------
 
 @router.post(
     "/logout",
@@ -163,9 +144,6 @@ def logout(
     response.delete_cookie(key=REFRESH_COOKIE_NAME, path="/")
 
 
-# -----------------------------------------------------------------------------
-# Usuario autenticado
-# -----------------------------------------------------------------------------
 
 @router.get(
     "/me",

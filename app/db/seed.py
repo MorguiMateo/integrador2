@@ -1,30 +1,14 @@
-"""
-app/db/seed.py
-
-Pobla la base de datos con datos iniciales del sistema.
-
-Idempotente: puede ejecutarse múltiples veces sin duplicar datos
-ni lanzar errores. Usa session.get() para verificar existencia
-antes de insertar.
-
-Uso manual:
-    python -m app.db.seed
-"""
-
 from sqlmodel import Session, select
 from app.core.database import engine
 from app.modules.rol.model import Rol
 from app.modules.unidad_medida.model import UnidadMedida
 from app.modules.estado_pedido.model import EstadoPedido
+from app.modules.estado_pedido.repository import EstadoPedidoRepository
 from app.modules.forma_pago.model import FormaPago
 from app.modules.usuario.model import Usuario
 from app.modules.usuario_rol.model import UsuarioRol
 from app.core.security import get_password_hash
 
-
-# -----------------------------------------------------------------------------
-# Datos
-# -----------------------------------------------------------------------------
 
 ROLES = [
     {
@@ -74,10 +58,6 @@ FORMAS_PAGO = [
 ]
 
 
-# -----------------------------------------------------------------------------
-# Seeders
-# -----------------------------------------------------------------------------
-
 
 def _seed_roles(session: Session) -> None:
     for data in ROLES:
@@ -109,13 +89,12 @@ def _seed_unidades_medida(session: Session) -> None:
 
 
 def _seed_estados_pedido(session: Session) -> None:
+    repo = EstadoPedidoRepository(session)
     for data in ESTADOS_PEDIDO:
-        existing = session.get(EstadoPedido, data["codigo"])
-
-        if existing:
+        if repo.get_by_codigo(data["codigo"]):
             continue
 
-        session.add(EstadoPedido(**data))
+        repo.save(EstadoPedido(**data))
     session.flush()
 
 
@@ -151,23 +130,8 @@ def _seed_admin(session: Session) -> None:
     session.flush()
 
 
-# -----------------------------------------------------------------------------
-# Entry point
-# -----------------------------------------------------------------------------
-
-
 def run_seed(session: Session) -> None:
-    """
-    Ejecuta todos los seeders en orden.
-
-    Idempotente: verifica existencia antes de insertar.
-    No hace commit — el llamador es responsable del commit.
-
-    Args:
-        session (Session):
-            Sesión de base de datos activa.
-    """
-
+   
     _seed_roles(session)
     _seed_unidades_medida(session)
     _seed_estados_pedido(session)
