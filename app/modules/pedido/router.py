@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, WebSocket, WebSocketDisconnect, status
 
 from app.core.deps import get_current_active_user
+from app.core.websocket import get_current_websocket_user, manager
 from app.modules.pedido import service
 from app.modules.pedido.schema import (
     AvanzarEstadoRequest,
@@ -116,3 +117,16 @@ def listar_historial(
     current_user: Usuario = Depends(get_current_active_user),
 ) -> list[HistorialRead]:
     return service.list_historial(pedido_id, current_user.id, current_user.roles)
+
+
+@router.websocket("/ws")
+async def pedidos_ws(websocket: WebSocket) -> None:
+    await get_current_websocket_user(websocket, allowed_roles={"ADMIN", "PEDIDOS"})
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        manager.disconnect(websocket)

@@ -47,9 +47,8 @@ ESTADOS_PEDIDO = [
     {"codigo": "PENDIENTE",  "descripcion": "Pedido recibido", "orden": 1, "es_terminal": False},
     {"codigo": "CONFIRMADO", "descripcion": "Pedido confirmado", "orden": 2, "es_terminal": False},
     {"codigo": "EN_PREP",    "descripcion": "En preparación", "orden": 3, "es_terminal": False},
-    {"codigo": "EN_CAMINO",  "descripcion": "En camino", "orden": 4, "es_terminal": False},
-    {"codigo": "ENTREGADO",  "descripcion": "Entregado", "orden": 5, "es_terminal": True},
-    {"codigo": "CANCELADO",  "descripcion": "Cancelado", "orden": 6, "es_terminal": True},
+    {"codigo": "ENTREGADO",  "descripcion": "Entregado", "orden": 4, "es_terminal": True},
+    {"codigo": "CANCELADO",  "descripcion": "Cancelado", "orden": 5, "es_terminal": True},
 ]
 
 FORMAS_PAGO = [
