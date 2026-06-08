@@ -57,7 +57,6 @@ FORMAS_PAGO = [
 ]
 
 
-
 def _seed_roles(session: Session) -> None:
     for data in ROLES:
         existing = session.get(Rol, data["codigo"])
@@ -131,6 +130,8 @@ def _seed_admin(session: Session) -> None:
 
 def run_seed(session: Session) -> None:
    
+def run_seed(session: Session) -> None:
+
     _seed_roles(session)
     _seed_unidades_medida(session)
     _seed_estados_pedido(session)

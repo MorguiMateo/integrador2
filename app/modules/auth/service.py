@@ -40,7 +40,6 @@ def create_refresh_token(usuario: Usuario) -> str:
 
 
 def decode_refresh_token(token: str) -> str:
-    
     payload = jwt.decode(
         token,
         settings.SECRET_KEY,

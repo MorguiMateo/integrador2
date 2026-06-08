@@ -28,7 +28,10 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
         statement = (
             self.base_stmt()
             .where(DireccionEntrega.usuario_id == usuario_id)
+
             .where(DireccionEntrega.es_principal == True)  
+            .where(DireccionEntrega.es_principal == True)
+
         )
 
         return self.session.exec(statement).first()

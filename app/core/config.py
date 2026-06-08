@@ -1,3 +1,4 @@
+## ⏺ - config.py — lee las variables de entorno (.env) y las expone como un objeto settings tipado con Pydantic, accesible desde cualquier parte de la app.
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +13,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=".env",
+        ##extra ignora las variables en .env no declaradas
         extra="ignore",
     )
 
+##se sintancia una vez y se importa en todos lados
 settings = Settings()

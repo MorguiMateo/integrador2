@@ -16,6 +16,10 @@ class Usuario(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
  
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
     nombre: str = Field(max_length=80, nullable=False)
     apellido: str = Field(max_length=80, nullable=False)
     email: str = Field(max_length=254, nullable=False, unique=True, index=True)

@@ -1,3 +1,4 @@
+##   - database.py — crea el engine de conexión a PostgreSQL, define create_db_and_tables para crear todas las tablas al arrancar, y provee get_session para inyectar sesiones vía Depends.
 import os
 
 from dotenv import load_dotenv
@@ -22,6 +23,7 @@ def create_db_and_tables() -> None:
     from app.modules.estado_pedido.model import EstadoPedido
     from app.modules.forma_pago.model import FormaPago
     from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
+    
     from app.modules.categoria.model import Categoria  
     from app.modules.ingrediente.model import Ingrediente 
     from app.modules.producto.link_models import (  
@@ -29,6 +31,14 @@ def create_db_and_tables() -> None:
         ProductoIngrediente,
     )
     from app.modules.producto.model import Producto 
+
+    from app.modules.categoria.model import Categoria
+    from app.modules.ingrediente.model import Ingrediente
+    from app.modules.producto.link_models import (
+        ProductoCategoria,
+        ProductoIngrediente,
+    )
+    from app.modules.producto.model import Producto
 
     SQLModel.metadata.create_all(engine)
 

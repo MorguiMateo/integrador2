@@ -46,13 +46,17 @@ class Producto(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
 
+    ##unidad_venta se debería llamar unidad_medida
     unidad_venta_id: Optional[int] = Field(
         default=None,
         foreign_key="unidad_medidas.id",
         nullable=True,
     )
 
+    ##
     unidad_venta: Optional["UnidadMedida"] = Relationship()
 
+    ##lista hace referencia a la tabla intermedia y el relationshop va a ser bidireccional con otro nombre en la tabla ProductoCategoria que se llama "producto"
+    ##basicamente recibir datos. si no se hace un selectInLoad se produce un error de n+1 que sobrecarga la base de datos.
     categoria_links: list[ProductoCategoria] = Relationship(back_populates="producto")
     ingrediente_links: list[ProductoIngrediente] = Relationship(back_populates="producto")

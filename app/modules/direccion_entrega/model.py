@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 
 
 class DireccionEntrega(SQLModel, table=True):
-    
 
     __tablename__ = "direcciones_entrega"
 

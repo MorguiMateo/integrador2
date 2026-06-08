@@ -9,12 +9,12 @@ from app.modules.categoria.schema import CategoriaRead
 from app.modules.ingrediente.schema import IngredienteRead
 from app.modules.unidad_medida.schema import UnidadMedidaRead
 
-
 class ProductoCategoriaCreate(BaseModel):
     categoria_id: int = Field(ge=1)
     es_principal: bool = False
 
-
+##sqlmodel hereda de base model
+##baseModel valida datos. sqlmodel combina la validacion e interactua con bases de datos.
 class ProductoCategoriaRead(BaseModel):
     categoria: CategoriaRead
     es_principal: bool

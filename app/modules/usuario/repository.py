@@ -5,14 +5,12 @@ from app.modules.usuario.model import Usuario
 
 
 class UsuarioRepository(BaseRepository[Usuario]):
-  
     model = Usuario
 
     def get_by_email(
         self,
         email: str,
     ) -> Usuario | None:
-        
 
         statement = (
             select(Usuario)

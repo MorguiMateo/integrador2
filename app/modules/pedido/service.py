@@ -22,9 +22,14 @@ from app.modules.usuario.model import Usuario
 FSM_TRANSITIONS = {
     "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
+
     "EN_PREP": ["ENTREGADO", "CANCELADO"],
     "ENTREGADO": [],
     "CANCELADO": [],
+    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
+    "EN_PREP":    ["ENTREGADO", "CANCELADO"],
+    "ENTREGADO":  [],
+    "CANCELADO":  [],
 }
 
 ROLES_GESTION_PEDIDOS = {"ADMIN", "PEDIDOS"}
@@ -51,9 +56,11 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
         detalles: list[DetallePedido] = []
 
         for item in data.items:
+
             # with_for_update bloquea la fila del producto hasta el commit del
             # pedido, así dos checkouts simultáneos del mismo producto se
             # serializan y no se puede sobrevender el stock.
+
             producto = uow.session.get(Producto, item.producto_id, with_for_update=True)
             if producto is None or producto.deleted_at is not None:
                 raise HTTPException(
@@ -89,6 +96,16 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                     personalizacion=item.personalizacion or [],
                 )
             )
+            precio_unit = Decimal(str(producto.precio_base))
+            detalles.append(DetallePedido(
+                producto_id=item.producto_id,
+                cantidad=item.cantidad,
+                nombre_snapshot=producto.nombre,
+                precio_snapshot=precio_unit,
+                subtotal_snap=precio_unit * item.cantidad,
+                personalizacion=item.personalizacion or [],
+            ))
+            producto.stock_cantidad -= item.cantidad
 
         subtotal = sum((d.subtotal_snap for d in detalles), Decimal("0.00"))
         descuento = Decimal("0.00")
@@ -151,6 +168,11 @@ def list_pedidos(
         # Orden estable y determinista: sin esto, PostgreSQL reordena las filas
         # tras cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar.
         stmt = stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc()).offset(skip).limit(limit)
+        stmt = (
+            stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         pedidos = uow.session.exec(stmt).all()
         return [PedidoRead.model_validate(p) for p in pedidos]
 
@@ -164,8 +186,12 @@ def get_pedido(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> PedidoR
         return PedidoRead.model_validate(pedido)
 
 
+
 def _reponer_stock(uow: UnitOfWork, pedido: Pedido) -> None:
     """Devuelve al stock las cantidades de cada línea del pedido."""
+
+def _reponer_stock(uow, pedido: Pedido) -> None:
+
     for det in pedido.detalles:
         producto = uow.session.get(Producto, det.producto_id, with_for_update=True)
         if producto is not None:
@@ -180,8 +206,12 @@ def _aplicar_transicion(
     usuario_id: Optional[int],
     motivo: Optional[str],
 ) -> Pedido:
+
     siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
     if not siguientes or estado_hacia not in siguientes:
+
+    if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
+
         raise HTTPException(
             status_code=422,
             detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
@@ -192,6 +222,7 @@ def _aplicar_transicion(
 
     estado_anterior = pedido.estado_codigo
     pedido.estado_codigo = estado_hacia
+
     uow.session.add(pedido)
     uow.session.add(
         HistorialEstadoPedido(

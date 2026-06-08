@@ -1,3 +1,4 @@
+##  - security.py — expone dos funciones: get_password_hash para hashear contraseñas con bcrypt y verify_password para compararlas.
 from passlib.context import CryptContext
 
 
