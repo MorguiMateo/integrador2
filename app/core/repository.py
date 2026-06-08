@@ -23,7 +23,10 @@ class BaseRepository(Generic[ModelT]):
     def base_stmt(self, *, include_deleted: bool = False) -> SelectOfScalar[ModelT]:
         stmt = select(self.model)
         if not include_deleted:
+
+            stmt = stmt.where(self.model.deleted_at == None) 
             stmt = stmt.where(self.model.deleted_at == None)
+
         return stmt
 
     #busca por pk y devuelve none si no existe o fue borrada con borradologico 
@@ -56,6 +59,8 @@ class BaseRepository(Generic[ModelT]):
             return set()
         stmt = select(self.model.id).where(
             self.model.id.in_(ids),
+
+            self.model.deleted_at == None,  
             self.model.deleted_at == None,
         )
         return set(self.session.exec(stmt).all())

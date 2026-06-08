@@ -15,7 +15,6 @@ class DireccionEntrega(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
 
-
     usuario_id: int = Field(
         foreign_key="usuarios.id",
         nullable=False,

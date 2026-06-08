@@ -24,7 +24,6 @@ router = APIRouter(
     tags=["Direcciones"],
 )
 
-
 @router.get(
     "",
     response_model=list[DireccionPublic],

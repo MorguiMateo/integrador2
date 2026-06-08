@@ -27,7 +27,6 @@ router = APIRouter(
 )
 
 
-
 def _set_access_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=ACCESS_COOKIE_NAME,
@@ -52,7 +51,6 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
     )
 
 
-
 @router.post(
     "/register",
     response_model=UserPublic,
@@ -67,7 +65,6 @@ def register(
             uow=uow,
             data=UserCreate(**data.model_dump()),
         )
-
 
 
 @router.post(
@@ -96,7 +93,6 @@ def login(
         _set_refresh_cookie(response, create_refresh_token(usuario))
 
         return usuario
-
 
 
 @router.post(

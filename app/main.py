@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 
 from app.core.database import create_db_and_tables, engine
@@ -13,7 +15,11 @@ from app.modules.direccion_entrega.router import router as direccion_router
 from app.modules.ingrediente.router import router as ingrediente_router
 from app.modules.pedido.router import router as pedido_router
 from app.modules.producto.router import router as producto_router
+from app.modules.upload.router import router as upload_router
 from app.modules.unidad_medida.router import router as unidad_medida_router
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @asynccontextmanager
@@ -50,4 +56,7 @@ app.include_router(direccion_router, prefix="/api/v1")
 app.include_router(ingrediente_router, prefix="/api/v1")
 app.include_router(producto_router, prefix="/api/v1")
 app.include_router(pedido_router, prefix="/api/v1")
+app.include_router(upload_router, prefix="/api/v1")
 app.include_router(unidad_medida_router, prefix="/api/v1")
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

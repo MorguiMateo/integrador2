@@ -1,14 +1,13 @@
-
 from sqlmodel import Session, select
 from app.core.database import engine
 from app.modules.rol.model import Rol
 from app.modules.unidad_medida.model import UnidadMedida
 from app.modules.estado_pedido.model import EstadoPedido
+from app.modules.estado_pedido.repository import EstadoPedidoRepository
 from app.modules.forma_pago.model import FormaPago
 from app.modules.usuario.model import Usuario
 from app.modules.usuario_rol.model import UsuarioRol
 from app.core.security import get_password_hash
-
 
 
 ROLES = [
@@ -58,8 +57,6 @@ FORMAS_PAGO = [
 ]
 
 
-
-
 def _seed_roles(session: Session) -> None:
     for data in ROLES:
         existing = session.get(Rol, data["codigo"])
@@ -90,13 +87,12 @@ def _seed_unidades_medida(session: Session) -> None:
 
 
 def _seed_estados_pedido(session: Session) -> None:
+    repo = EstadoPedidoRepository(session)
     for data in ESTADOS_PEDIDO:
-        existing = session.get(EstadoPedido, data["codigo"])
-
-        if existing:
+        if repo.get_by_codigo(data["codigo"]):
             continue
 
-        session.add(EstadoPedido(**data))
+        repo.save(EstadoPedido(**data))
     session.flush()
 
 
@@ -132,8 +128,8 @@ def _seed_admin(session: Session) -> None:
     session.flush()
 
 
-
-
+def run_seed(session: Session) -> None:
+   
 def run_seed(session: Session) -> None:
 
     _seed_roles(session)

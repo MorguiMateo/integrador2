@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
+ 
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+ 
 
     id: Optional[int] = Field(default=None, primary_key=True)
 
@@ -48,7 +52,6 @@ class Usuario(SQLModel, table=True):
         },
     )
     direcciones: list["DireccionEntrega"] = Relationship(back_populates="usuario")
-
 
     @property
     def roles(self) -> list[str]:

@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from sqlmodel import select
 
 from app.core.uow import UnitOfWork
+from app.core.websocket import manager as websocket_manager
 from app.modules.pedido.model import DetallePedido, HistorialEstadoPedido, Pedido
 from app.modules.pedido.schema import (
     DetallePedidoRead,
@@ -19,8 +20,12 @@ from app.modules.usuario.model import Usuario
 
 
 FSM_TRANSITIONS = {
-    "PENDIENTE":  ["CONFIRMADO", "CANCELADO"],
+    "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
+
+    "EN_PREP": ["ENTREGADO", "CANCELADO"],
+    "ENTREGADO": [],
+    "CANCELADO": [],
     # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
     "EN_PREP":    ["ENTREGADO", "CANCELADO"],
     "ENTREGADO":  [],
@@ -48,8 +53,14 @@ def _assert_puede_ver(pedido: Pedido, current_user_id: int, roles: Iterable[str]
 
 def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
     with UnitOfWork() as uow:
-        detalles = []
+        detalles: list[DetallePedido] = []
+
         for item in data.items:
+
+            # with_for_update bloquea la fila del producto hasta el commit del
+            # pedido, así dos checkouts simultáneos del mismo producto se
+            # serializan y no se puede sobrevender el stock.
+
             producto = uow.session.get(Producto, item.producto_id, with_for_update=True)
             if producto is None or producto.deleted_at is not None:
                 raise HTTPException(
@@ -69,6 +80,22 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
                     ),
                 )
+
+            precio_unit = Decimal(str(producto.precio_base))
+            subtotal_item = precio_unit * item.cantidad
+            producto.stock_cantidad -= item.cantidad
+            uow.session.add(producto)
+
+            detalles.append(
+                DetallePedido(
+                    producto_id=item.producto_id,
+                    cantidad=item.cantidad,
+                    nombre_snapshot=producto.nombre,
+                    precio_snapshot=precio_unit,
+                    subtotal_snap=subtotal_item,
+                    personalizacion=item.personalizacion or [],
+                )
+            )
             precio_unit = Decimal(str(producto.precio_base))
             detalles.append(DetallePedido(
                 producto_id=item.producto_id,
@@ -101,14 +128,26 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
             det.pedido_id = pedido.id
             uow.session.add(det)
 
-        uow.session.add(HistorialEstadoPedido(
-            pedido_id=pedido.id,
-            estado_desde=None,
-            estado_hacia="PENDIENTE",
-            usuario_id=usuario_id,
-        ))
+        uow.session.add(
+            HistorialEstadoPedido(
+                pedido_id=pedido.id,
+                estado_desde=None,
+                estado_hacia="PENDIENTE",
+                usuario_id=usuario_id,
+            )
+        )
         uow.session.flush()
-        return PedidoRead.model_validate(pedido)
+        pedido_read = PedidoRead.model_validate(pedido)
+
+    websocket_manager.broadcast(
+        {
+            "event": "ORDER_CREATED",
+            "pedido_id": pedido_read.id,
+            "estado": pedido_read.estado_codigo,
+            "usuario_id": pedido_read.usuario_id,
+        }
+    )
+    return pedido_read
 
 
 def list_pedidos(
@@ -125,6 +164,10 @@ def list_pedidos(
             stmt = stmt.where(Pedido.usuario_id == usuario_id)
         if estado:
             stmt = stmt.where(Pedido.estado_codigo == estado)
+
+        # Orden estable y determinista: sin esto, PostgreSQL reordena las filas
+        # tras cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar.
+        stmt = stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc()).offset(skip).limit(limit)
         stmt = (
             stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc())
             .offset(skip)
@@ -143,21 +186,32 @@ def get_pedido(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> PedidoR
         return PedidoRead.model_validate(pedido)
 
 
+
+def _reponer_stock(uow: UnitOfWork, pedido: Pedido) -> None:
+    """Devuelve al stock las cantidades de cada línea del pedido."""
+
 def _reponer_stock(uow, pedido: Pedido) -> None:
+
     for det in pedido.detalles:
         producto = uow.session.get(Producto, det.producto_id, with_for_update=True)
         if producto is not None:
             producto.stock_cantidad += det.cantidad
+            uow.session.add(producto)
 
 
 def _aplicar_transicion(
-    uow,
+    uow: UnitOfWork,
     pedido: Pedido,
     estado_hacia: str,
     usuario_id: Optional[int],
     motivo: Optional[str],
 ) -> Pedido:
+
+    siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
+    if not siguientes or estado_hacia not in siguientes:
+
     if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
+
         raise HTTPException(
             status_code=422,
             detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
@@ -170,13 +224,15 @@ def _aplicar_transicion(
     pedido.estado_codigo = estado_hacia
 
     uow.session.add(pedido)
-    uow.session.add(HistorialEstadoPedido(
-        pedido_id=pedido.id,
-        estado_desde=estado_anterior,
-        estado_hacia=estado_hacia,
-        usuario_id=usuario_id,
-        motivo=motivo,
-    ))
+    uow.session.add(
+        HistorialEstadoPedido(
+            pedido_id=pedido.id,
+            estado_desde=estado_anterior,
+            estado_hacia=estado_hacia,
+            usuario_id=usuario_id,
+            motivo=motivo,
+        )
+    )
     uow.session.flush()
     return pedido
 
@@ -199,11 +255,15 @@ def avanzar_estado(
             detail="Motivo obligatorio para cancelar el pedido.",
         )
 
+    pedido_read: Optional[PedidoRead] = None
+    estado_anterior: Optional[str] = None
+
     with UnitOfWork() as uow:
         pedido = uow.session.get(Pedido, pedido_id)
         if pedido is None:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
+        estado_anterior = pedido.estado_codigo
         pedido = _aplicar_transicion(
             uow=uow,
             pedido=pedido,
@@ -211,7 +271,19 @@ def avanzar_estado(
             usuario_id=current_user.id,
             motivo=motivo,
         )
-        return PedidoRead.model_validate(pedido)
+        pedido_read = PedidoRead.model_validate(pedido)
+
+    websocket_manager.broadcast(
+        {
+            "event": "ORDER_STATE_CHANGED",
+            "pedido_id": pedido_read.id if pedido_read else pedido_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_hacia,
+            "usuario_id": current_user.id,
+            "motivo": motivo,
+        }
+    )
+    return pedido_read
 
 
 def cancelar_pedido(
@@ -219,6 +291,9 @@ def cancelar_pedido(
     current_user: Usuario,
     motivo: str,
 ) -> PedidoRead:
+    pedido_read: Optional[PedidoRead] = None
+    estado_anterior: Optional[str] = None
+
     with UnitOfWork() as uow:
         pedido = uow.session.get(Pedido, pedido_id)
         if pedido is None:
@@ -235,6 +310,7 @@ def cancelar_pedido(
                 detail="El pedido ya no puede cancelarse por el cliente.",
             )
 
+        estado_anterior = pedido.estado_codigo
         pedido = _aplicar_transicion(
             uow=uow,
             pedido=pedido,
@@ -242,7 +318,19 @@ def cancelar_pedido(
             usuario_id=current_user.id,
             motivo=motivo,
         )
-        return PedidoRead.model_validate(pedido)
+        pedido_read = PedidoRead.model_validate(pedido)
+
+    websocket_manager.broadcast(
+        {
+            "event": "ORDER_STATE_CHANGED",
+            "pedido_id": pedido_read.id if pedido_read else pedido_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": "CANCELADO",
+            "usuario_id": current_user.id,
+            "motivo": motivo,
+        }
+    )
+    return pedido_read
 
 
 def list_detalles(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> list[DetallePedidoRead]:
