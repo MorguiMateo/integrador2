@@ -21,8 +21,8 @@ from app.modules.usuario.model import Usuario
 FSM_TRANSITIONS = {
     "PENDIENTE":  ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
-    "EN_PREP":    ["EN_CAMINO"],
-    "EN_CAMINO":  ["ENTREGADO"],
+    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
+    "EN_PREP":    ["ENTREGADO", "CANCELADO"],
     "ENTREGADO":  [],
     "CANCELADO":  [],
 }
@@ -157,7 +157,7 @@ def _aplicar_transicion(
     usuario_id: Optional[int],
     motivo: Optional[str],
 ) -> Pedido:
-    if estado_hacia not in FSM_TRANSITIONS[pedido.estado_codigo]:
+    if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
         raise HTTPException(
             status_code=422,
             detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
