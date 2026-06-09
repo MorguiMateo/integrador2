@@ -129,8 +129,6 @@ def _seed_admin(session: Session) -> None:
 
 
 def run_seed(session: Session) -> None:
-   
-def run_seed(session: Session) -> None:
 
     _seed_roles(session)
     _seed_unidades_medida(session)
