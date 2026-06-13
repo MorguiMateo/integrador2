@@ -17,8 +17,12 @@ from app.modules.auth.service import (
     decode_refresh_token,
 )
 from app.modules.usuario.model import Usuario
-from app.modules.usuario.schemas import UserCreate, UserPublic
-from app.modules.usuario.service import authenticate_user, create_usuario
+from app.modules.usuario.schemas import UserCreate, UserPublic, UserUpdate
+from app.modules.usuario.service import (
+    authenticate_user,
+    create_usuario,
+    update_usuario,
+)
 
 
 router = APIRouter(
@@ -153,3 +157,20 @@ def me(
     current_user: Usuario = Depends(get_current_active_user),
 ):
     return current_user
+
+
+@router.patch(
+    "/me",
+    response_model=UserPublic,
+)
+def update_me(
+    data: UserUpdate,
+    current_user: Usuario = Depends(get_current_active_user),
+    uow: UnitOfWork = Depends(),
+):
+    with uow:
+        return update_usuario(
+            uow=uow,
+            usuario_id=current_user.id,
+            data=data,
+        )

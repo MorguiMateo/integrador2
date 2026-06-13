@@ -22,14 +22,10 @@ from app.modules.usuario.model import Usuario
 FSM_TRANSITIONS = {
     "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
-
+    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
     "EN_PREP": ["ENTREGADO", "CANCELADO"],
     "ENTREGADO": [],
     "CANCELADO": [],
-    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
-    "EN_PREP":    ["ENTREGADO", "CANCELADO"],
-    "ENTREGADO":  [],
-    "CANCELADO":  [],
 }
 
 ROLES_GESTION_PEDIDOS = {"ADMIN", "PEDIDOS"}
@@ -96,16 +92,6 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                     personalizacion=item.personalizacion or [],
                 )
             )
-            precio_unit = Decimal(str(producto.precio_base))
-            detalles.append(DetallePedido(
-                producto_id=item.producto_id,
-                cantidad=item.cantidad,
-                nombre_snapshot=producto.nombre,
-                precio_snapshot=precio_unit,
-                subtotal_snap=precio_unit * item.cantidad,
-                personalizacion=item.personalizacion or [],
-            ))
-            producto.stock_cantidad -= item.cantidad
 
         subtotal = sum((d.subtotal_snap for d in detalles), Decimal("0.00"))
         descuento = Decimal("0.00")

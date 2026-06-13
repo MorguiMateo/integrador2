@@ -1,10 +1,14 @@
+from datetime import datetime, timezone
+
+from fastapi import HTTPException, status
+
 from app.core.security import (
     get_password_hash,
     verify_password,
 )
 from app.modules.usuario.model import Usuario
 from app.modules.usuario.repository import UsuarioRepository
-from app.modules.usuario.schemas import UserCreate
+from app.modules.usuario.schemas import UserCreate, UserUpdate
 
 
 def create_usuario(
@@ -43,6 +47,32 @@ def get_usuario(
     usuario_repository = UsuarioRepository(uow.session)
 
     return usuario_repository.get(usuario_id)
+
+
+def update_usuario(
+    uow,
+    usuario_id: int,
+    data: UserUpdate,
+) -> Usuario:
+
+    usuario_repository = UsuarioRepository(uow.session)
+
+    usuario = usuario_repository.get(usuario_id)
+
+    if usuario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado.",
+        )
+
+    cambios = data.model_dump(exclude_unset=True)
+
+    for campo, valor in cambios.items():
+        setattr(usuario, campo, valor)
+
+    usuario.updated_at = datetime.now(timezone.utc)
+
+    return usuario_repository.save(usuario)
 
 
 def list_usuarios(
