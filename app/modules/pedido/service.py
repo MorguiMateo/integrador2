@@ -22,7 +22,9 @@ from app.modules.usuario.model import Usuario
 FSM_TRANSITIONS = {
     "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
+
     # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
+  
     "EN_PREP": ["ENTREGADO", "CANCELADO"],
     "ENTREGADO": [],
     "CANCELADO": [],
@@ -155,11 +157,6 @@ def list_pedidos(
         # Orden estable y determinista: sin esto, PostgreSQL reordena las filas
         # tras cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar.
         stmt = stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc()).offset(skip).limit(limit)
-        stmt = (
-            stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc())
-            .offset(skip)
-            .limit(limit)
-        )
         pedidos = uow.session.exec(stmt).all()
         return [PedidoRead.model_validate(p) for p in pedidos]
 
@@ -175,10 +172,6 @@ def get_pedido(pedido_id: int, usuario_id: int, roles: Iterable[str]) -> PedidoR
 
 
 def _reponer_stock(uow: UnitOfWork, pedido: Pedido) -> None:
-    """Devuelve al stock las cantidades de cada línea del pedido."""
-
-def _reponer_stock(uow, pedido: Pedido) -> None:
-
     for det in pedido.detalles:
         producto = uow.session.get(Producto, det.producto_id, with_for_update=True)
         if producto is not None:
@@ -194,7 +187,10 @@ def _aplicar_transicion(
     motivo: Optional[str],
 ) -> Pedido:
 
+
+    if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
     siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
+
     if not siguientes or estado_hacia not in siguientes:
         raise HTTPException(
             status_code=422,

@@ -11,6 +11,7 @@ class Ingrediente(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(index=True, unique=True, min_length=2, max_length=100)
+    stock_cantidad: int = Field(default=0, ge=0, nullable=False)
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     es_alergeno: bool = Field(default=False, nullable=False)
 

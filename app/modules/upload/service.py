@@ -1,35 +1,44 @@
 from __future__ import annotations
 
-from pathlib import Path
-from uuid import uuid4
+import cloudinary.uploader
+from fastapi import HTTPException, UploadFile
 
-from fastapi import UploadFile
-
-from app.modules.upload.schema import UploadResponse
+from app.modules.upload.schema import CloudinaryResponse
 
 
-UPLOAD_DIR = Path("uploads")
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_FORMATS = ["jpg", "jpeg", "png", "webp"]
+MAX_SIZE = 5 * 1024 * 1024
 
 
-async def save_upload(file: UploadFile) -> UploadResponse:
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+async def upload_imagen(file: UploadFile, folder: str) -> CloudinaryResponse:
+    if file.content_type not in ALLOWED_MIME:
+        raise HTTPException(status_code=400, detail="Formato de imagen no soportado")
 
-    suffix = Path(file.filename or "").suffix
-    filename = f"{uuid4().hex}{suffix}"
-    destination = UPLOAD_DIR / filename
-
-    size = 0
-    with destination.open("wb") as buffer:
-        while chunk := await file.read(1024 * 1024):
-            buffer.write(chunk)
-            size += len(chunk)
-
+    contenido = await file.read()
     await file.close()
 
-    return UploadResponse(
-        filename=filename,
-        url=f"/uploads/{filename}",
-        content_type=file.content_type,
-        size=size,
+    if len(contenido) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="La imagen supera el tamaño máximo de 5 MB")
+
+    resultado = cloudinary.uploader.upload(
+        contenido,
+        folder=folder,
+        overwrite=False,
+        unique_filename=True,
+        resource_type="image",
+        allowed_formats=ALLOWED_FORMATS,
     )
 
+    return CloudinaryResponse(
+        secure_url=resultado["secure_url"],
+        public_id=resultado["public_id"],
+        width=resultado["width"],
+        height=resultado["height"],
+        format=resultado["format"],
+        resource_type=resultado["resource_type"],
+    )
+
+
+def eliminar_imagen(public_id: str) -> None:
+    cloudinary.uploader.destroy(public_id, resource_type="image")
