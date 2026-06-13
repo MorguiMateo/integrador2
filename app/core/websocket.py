@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
 from fastapi import WebSocket, WebSocketException, status
@@ -14,30 +15,49 @@ from app.modules.usuario.model import Usuario
 from app.modules.usuario.repository import UsuarioRepository
 
 
+GESTOR_ROLES = {"ADMIN", "PEDIDOS"}
+
+
+@dataclass
+class ConnInfo:
+    user_id: int
+    roles: set[str]
+
+
 class ConnectionManager:
     def __init__(self) -> None:
-        self.active_connections: set[WebSocket] = set()
+        self.active_connections: dict[WebSocket, ConnInfo] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, user_id: int, roles: set[str]) -> None:
         await websocket.accept()
         self._loop = asyncio.get_running_loop()
-        self.active_connections.add(websocket)
+        self.active_connections[websocket] = ConnInfo(user_id=user_id, roles=roles)
 
     def disconnect(self, websocket: WebSocket) -> None:
-        self.active_connections.discard(websocket)
+        self.active_connections.pop(websocket, None)
+
+    def _should_send(self, info: ConnInfo, message: Any) -> bool:
+        # Los gestores (ADMIN/PEDIDOS) reciben todos los eventos.
+        if info.roles & GESTOR_ROLES:
+            return True
+        # Un cliente solo recibe eventos de sus propios pedidos.
+        owner_id = message.get("owner_id") if isinstance(message, dict) else None
+        return owner_id == info.user_id
 
     async def _broadcast_async(self, message: Any) -> None:
         stale_connections: list[WebSocket] = []
 
-        for websocket in list(self.active_connections):
+        for websocket, info in list(self.active_connections.items()):
+            if not self._should_send(info, message):
+                continue
             try:
                 await websocket.send_json(message)
             except Exception:
                 stale_connections.append(websocket)
 
         for websocket in stale_connections:
-            self.active_connections.discard(websocket)
+            self.active_connections.pop(websocket, None)
 
     def broadcast(self, message: Any) -> None:
         if self._loop is None or self._loop.is_closed():

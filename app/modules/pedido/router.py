@@ -121,8 +121,8 @@ def listar_historial(
 
 @router.websocket("/ws")
 async def pedidos_ws(websocket: WebSocket) -> None:
-    await get_current_websocket_user(websocket, allowed_roles={"ADMIN", "PEDIDOS"})
-    await manager.connect(websocket)
+    usuario = await get_current_websocket_user(websocket)
+    await manager.connect(websocket, user_id=usuario.id, roles=set(usuario.roles))
     try:
         while True:
             await websocket.receive()

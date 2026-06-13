@@ -22,6 +22,9 @@ from app.modules.usuario.model import Usuario
 FSM_TRANSITIONS = {
     "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
+
+    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
+  
     "EN_PREP": ["ENTREGADO", "CANCELADO"],
     "ENTREGADO": [],
     "CANCELADO": [],
@@ -128,6 +131,7 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
         {
             "event": "ORDER_CREATED",
             "pedido_id": pedido_read.id,
+            "owner_id": pedido_read.usuario_id,
             "estado": pedido_read.estado_codigo,
             "usuario_id": pedido_read.usuario_id,
         }
@@ -183,7 +187,11 @@ def _aplicar_transicion(
     motivo: Optional[str],
 ) -> Pedido:
 
+
     if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
+    siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
+
+    if not siguientes or estado_hacia not in siguientes:
         raise HTTPException(
             status_code=422,
             detail=f"Transicion invalida: {pedido.estado_codigo} -> {estado_hacia}",
@@ -249,6 +257,7 @@ def avanzar_estado(
         {
             "event": "ORDER_STATE_CHANGED",
             "pedido_id": pedido_read.id if pedido_read else pedido_id,
+            "owner_id": pedido_read.usuario_id if pedido_read else None,
             "estado_anterior": estado_anterior,
             "estado_nuevo": estado_hacia,
             "usuario_id": current_user.id,
@@ -296,6 +305,7 @@ def cancelar_pedido(
         {
             "event": "ORDER_STATE_CHANGED",
             "pedido_id": pedido_read.id if pedido_read else pedido_id,
+            "owner_id": pedido_read.usuario_id if pedido_read else None,
             "estado_anterior": estado_anterior,
             "estado_nuevo": "CANCELADO",
             "usuario_id": current_user.id,
