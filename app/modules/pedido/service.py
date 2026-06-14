@@ -72,7 +72,7 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                 )
             if producto.stock_cantidad < item.cantidad:
                 raise HTTPException(
-                    status_code=409,
+                    status_code=400,
                     detail=(
                         f"Stock insuficiente para '{producto.nombre}': "
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
@@ -188,7 +188,6 @@ def _aplicar_transicion(
 ) -> Pedido:
 
 
-    if estado_hacia not in FSM_TRANSITIONS.get(pedido.estado_codigo, []):
     siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
 
     if not siguientes or estado_hacia not in siguientes:
