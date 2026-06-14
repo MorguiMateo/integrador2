@@ -39,7 +39,7 @@ def crear_pedido(
 def listar_pedidos(
     current_user: Usuario = Depends(get_current_active_user),
     skip: Annotated[int, Query(ge=0, description="Registros a saltar")] = 0,
-    limit: Annotated[int, Query(ge=1, le=100, description="Máximo por página")] = 50,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Máximo por página")] = 50,
     estado: Annotated[Optional[str], Query(description="Filtrar por estado")] = None,
 ) -> list[PedidoRead]:
     return service.list_pedidos(
