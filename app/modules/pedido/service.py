@@ -187,7 +187,6 @@ def _aplicar_transicion(
     motivo: Optional[str],
 ) -> Pedido:
 
-
     siguientes = FSM_TRANSITIONS.get(pedido.estado_codigo)
 
     if not siguientes or estado_hacia not in siguientes:
