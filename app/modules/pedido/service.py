@@ -72,7 +72,7 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                 )
             if producto.stock_cantidad < item.cantidad:
                 raise HTTPException(
-                    status_code=409,
+                    status_code=400,
                     detail=(
                         f"Stock insuficiente para '{producto.nombre}': "
                         f"disponible {producto.stock_cantidad}, solicitado {item.cantidad}."
