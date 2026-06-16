@@ -9,11 +9,8 @@ if TYPE_CHECKING:
 
 
 class UsuarioRol(SQLModel, table=True):
+    __tablename__ = "usuarios_roles"
 
-    
-    __tablename__ = "usuarios_roles"
-    __tablename__ = "usuarios_roles"
-    
     usuario_id: int = Field(
         foreign_key="usuarios.id",
         primary_key=True,

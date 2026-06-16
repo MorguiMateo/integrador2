@@ -6,11 +6,28 @@ from fastapi import APIRouter, Depends, Path, Request, status
 
 from app.core.deps import get_current_active_user
 from app.modules.pago import service
-from app.modules.pago.schemas import PagoCreate, PagoResponse
+from app.modules.pago.schemas import (
+    PagoCreate,
+    PagoResponse,
+    PreferenciaCreate,
+    PreferenciaResponse,
+)
 from app.modules.usuario.model import Usuario
 
 
 router = APIRouter(prefix="/pagos", tags=["pagos"])
+
+
+@router.post(
+    "/preferencia",
+    response_model=PreferenciaResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def crear_preferencia(
+    payload: PreferenciaCreate,
+    current_user: Usuario = Depends(get_current_active_user),
+) -> PreferenciaResponse:
+    return service.crear_preferencia(payload, current_user)
 
 
 @router.post("/crear", response_model=PagoResponse, status_code=status.HTTP_201_CREATED)

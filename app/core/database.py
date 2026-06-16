@@ -23,15 +23,7 @@ def create_db_and_tables() -> None:
     from app.modules.estado_pedido.model import EstadoPedido
     from app.modules.forma_pago.model import FormaPago
     from app.modules.pedido.model import Pedido, DetallePedido, HistorialEstadoPedido
-    
-    from app.modules.categoria.model import Categoria  
-    from app.modules.ingrediente.model import Ingrediente 
-    from app.modules.producto.link_models import (  
-        ProductoCategoria,
-        ProductoIngrediente,
-    )
-    from app.modules.producto.model import Producto 
-
+    from app.modules.pago.model import Pago
     from app.modules.categoria.model import Categoria
     from app.modules.ingrediente.model import Ingrediente
     from app.modules.producto.link_models import (

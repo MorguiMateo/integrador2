@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     MP_ACCESS_TOKEN: str = ""
     MP_PUBLIC_KEY: str = ""
     MP_WEBHOOK_SECRET: str = ""
+    MP_NOTIFICATION_URL: str = ""
+
+    # URL del storefront, usada para las back_urls del Checkout PRO.
+    FRONTEND_URL: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env",

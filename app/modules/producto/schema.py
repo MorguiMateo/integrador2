@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -41,7 +42,7 @@ class ProductoIngredienteRead(BaseModel):
 class ProductoBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: float = Field(ge=0)
+    precio_base: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
     imagenes_url: list[str] = []
     stock_cantidad: int = Field(default=0, ge=0)
     disponible: bool = True
@@ -69,7 +70,7 @@ class ProductoRead(ProductoBase):
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = Field(default=None, min_length=2, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: Optional[float] = Field(default=None, ge=0)
+    precio_base: Optional[Decimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     imagenes_url: Optional[list[str]] = None
     stock_cantidad: Optional[int] = Field(default=None, ge=0)
     disponible: Optional[bool] = None

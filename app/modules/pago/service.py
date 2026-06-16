@@ -11,7 +11,12 @@ from app.core.uow import UnitOfWork
 from app.core.websocket import manager as websocket_manager
 from app.modules.pago.model import Pago
 from app.modules.pago.repository import PagoRepository
-from app.modules.pago.schemas import PagoCreate, PagoResponse
+from app.modules.pago.schemas import (
+    PagoCreate,
+    PagoResponse,
+    PreferenciaCreate,
+    PreferenciaResponse,
+)
 from app.modules.pedido.model import Pedido
 from app.modules.pedido.service import _aplicar_transicion
 from app.modules.usuario.model import Usuario
@@ -26,14 +31,104 @@ def _get_sdk() -> mercadopago.SDK:
     return mercadopago.SDK(settings.MP_ACCESS_TOKEN)
 
 
-def _evento_pago_confirmado(pedido_id: int, usuario_id: Optional[int]) -> dict:
+def _evento_pago_confirmado(pedido_id: int, owner_id: Optional[int]) -> dict:
+    # Mismo evento que usa el módulo pedido para que el Store (cliente dueño) y el
+    # panel admin lo reciban y refresquen: ambos escuchan ORDER_STATE_CHANGED.
     return {
-        "event": "pago_confirmado",
+        "event": "ORDER_STATE_CHANGED",
         "pedido_id": pedido_id,
+        "owner_id": owner_id,
         "estado_anterior": "PENDIENTE",
         "estado_nuevo": "CONFIRMADO",
-        "usuario_id": usuario_id,
     }
+
+
+def _items_preferencia(pedido: Pedido) -> list[dict]:
+    # Si hay descuento, una sola línea con el total garantiza que el monto cobrado
+    # coincida con Pedido.total. Si no, se itemiza producto por producto + envío.
+    if pedido.descuento and pedido.descuento > 0:
+        return [
+            {
+                "title": f"Pedido #{pedido.id}",
+                "quantity": 1,
+                "currency_id": "ARS",
+                "unit_price": float(pedido.total),
+            }
+        ]
+
+    items = [
+        {
+            "title": det.nombre_snapshot,
+            "quantity": det.cantidad,
+            "currency_id": "ARS",
+            "unit_price": float(det.precio_snapshot),
+        }
+        for det in pedido.detalles
+    ]
+    if pedido.costo_envio and pedido.costo_envio > 0:
+        items.append(
+            {
+                "title": "Envío",
+                "quantity": 1,
+                "currency_id": "ARS",
+                "unit_price": float(pedido.costo_envio),
+            }
+        )
+    return items
+
+
+def crear_preferencia(data: PreferenciaCreate, current_user: Usuario) -> PreferenciaResponse:
+    with UnitOfWork() as uow:
+        pedido = uow.session.get(Pedido, data.pedido_id)
+        if pedido is None or pedido.deleted_at is not None:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        if pedido.usuario_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sin acceso a este pedido")
+        if pedido.estado_codigo != "PENDIENTE":
+            raise HTTPException(status_code=409, detail="El pedido no está pendiente de pago.")
+
+        # Reutiliza el pago si ya se generó una preferencia para este pedido.
+        repo = PagoRepository(uow.session)
+        pago = repo.get_by_pedido(pedido.id)
+        if pago is None:
+            pago = Pago(
+                pedido_id=pedido.id,
+                mp_status="pending",
+                idempotency_key=str(uuid4()),
+                transaction_amount=pedido.total,
+                external_reference=str(uuid4()),
+            )
+            uow.session.add(pago)
+            uow.session.flush()
+
+        preference_data = {
+            "items": _items_preferencia(pedido),
+            "external_reference": pago.external_reference,
+            "payer": {"email": current_user.email},
+            "back_urls": {
+                "success": f"{settings.FRONTEND_URL}/orders/{pedido.id}?pago=success",
+                "failure": f"{settings.FRONTEND_URL}/orders/{pedido.id}?pago=failure",
+                "pending": f"{settings.FRONTEND_URL}/orders/{pedido.id}?pago=pending",
+            },
+            "auto_return": "approved",
+            "metadata": {"pedido_id": pedido.id},
+        }
+        if settings.MP_NOTIFICATION_URL:
+            preference_data["notification_url"] = settings.MP_NOTIFICATION_URL
+
+        resultado = _get_sdk().preference().create(preference_data)
+        mp = resultado.get("response", {})
+        init_point = mp.get("init_point") or mp.get("sandbox_init_point")
+        preference_id = mp.get("id")
+        if not init_point or not preference_id:
+            raise HTTPException(status_code=502, detail="MercadoPago no devolvió la preferencia.")
+
+        return PreferenciaResponse(
+            pago_id=pago.id,
+            pedido_id=pedido.id,
+            preference_id=str(preference_id),
+            init_point=init_point,
+        )
 
 
 def crear_pago(data: PagoCreate, current_user: Usuario) -> PagoResponse:
@@ -97,6 +192,7 @@ def procesar_webhook(tipo: Optional[str], data_id: Optional[str]) -> None:
         return
 
     pedido_confirmado: Optional[int] = None
+    owner_id: Optional[int] = None
 
     with UnitOfWork() as uow:
         resultado = _get_sdk().payment().get(data_id)
@@ -120,9 +216,10 @@ def procesar_webhook(tipo: Optional[str], data_id: Optional[str]) -> None:
         if estado_mp == "approved" and pedido is not None and pedido.estado_codigo == "PENDIENTE":
             _aplicar_transicion(uow, pedido, "CONFIRMADO", None, None)
             pedido_confirmado = pedido.id
+            owner_id = pedido.usuario_id
 
     if pedido_confirmado is not None:
-        websocket_manager.broadcast(_evento_pago_confirmado(pedido_confirmado, None))
+        websocket_manager.broadcast(_evento_pago_confirmado(pedido_confirmado, owner_id))
 
 
 def get_pago_por_pedido(pedido_id: int, current_user: Usuario, roles: Iterable[str]) -> PagoResponse:

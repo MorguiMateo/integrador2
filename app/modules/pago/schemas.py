@@ -16,6 +16,17 @@ class PagoCreate(BaseModel):
     email: Optional[EmailStr] = None
 
 
+class PreferenciaCreate(BaseModel):
+    pedido_id: int = Field(ge=1)
+
+
+class PreferenciaResponse(BaseModel):
+    pago_id: int
+    pedido_id: int
+    preference_id: str
+    init_point: str
+
+
 class PagoResponse(BaseModel):
     id: int
     pedido_id: int

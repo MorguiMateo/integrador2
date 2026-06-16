@@ -49,6 +49,7 @@ from sqlalchemy import text
 from sqlmodel import Session, SQLModel, select
 
 from app.core.database import engine
+from app.core.rate_limit import login_rate_limiter
 from app.core.security import get_password_hash
 from app.db.seed import run_seed
 from app.main import app
@@ -68,6 +69,7 @@ def _crear_schema():
 
 @pytest.fixture(autouse=True)
 def db_session():
+    login_rate_limiter.reset()
     with engine.begin() as conn:
         for tabla in reversed(SQLModel.metadata.sorted_tables):
             conn.execute(text(f'TRUNCATE TABLE "{tabla.name}" RESTART IDENTITY CASCADE'))

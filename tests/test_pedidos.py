@@ -58,3 +58,15 @@ def test_historial_append_only(client, admin_headers, cliente_id, producto_facto
     r = client.get(f"/api/v1/pedidos/{pedido_id}/historial", cookies=admin_headers)
     assert r.status_code == 200
     assert len(r.json()) >= 2
+
+
+def test_cancelar_pedido_propio(client, client_headers, cliente_id, producto_factory, pedido_factory):
+    pid = producto_factory()
+    pedido_id = pedido_factory(cliente_id, pid, estado="PENDIENTE")
+    r = client.post(
+        f"/api/v1/pedidos/{pedido_id}/cancelar",
+        cookies=client_headers,
+        json={"motivo": "Ya no lo quiero"},
+    )
+    assert r.status_code == 200
+    assert r.json()["estado_codigo"] == "CANCELADO"

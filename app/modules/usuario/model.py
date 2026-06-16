@@ -12,13 +12,7 @@ if TYPE_CHECKING:
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
- 
     id: Optional[int] = Field(default=None, primary_key=True)
-
- 
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-
 
     nombre: str = Field(max_length=80, nullable=False)
     apellido: str = Field(max_length=80, nullable=False)

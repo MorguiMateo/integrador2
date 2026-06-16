@@ -34,13 +34,12 @@ ROLES = [
 ]
 
 UNIDADES_MEDIDA = [
-    {"nombre": "kilogramo",      "simbolo": "kg",  "tipo": "masa"},
-    {"nombre": "gramo",          "simbolo": "g",   "tipo": "masa"},
-    {"nombre": "litro",          "simbolo": "L",   "tipo": "volumen"},
-    {"nombre": "mililitro",      "simbolo": "mL",  "tipo": "volumen"},
-    {"nombre": "pieza",          "simbolo": "u",   "tipo": "unidad"},
-    {"nombre": "docena",         "simbolo": "doc", "tipo": "unidad"},
-    {"nombre": "metro cuadrado", "simbolo": "m²",  "tipo": "area"},
+    {"nombre": "kilogramo", "simbolo": "kg",        "tipo": "peso"},
+    {"nombre": "gramo",     "simbolo": "g",         "tipo": "peso"},
+    {"nombre": "litro",     "simbolo": "L",         "tipo": "volumen"},
+    {"nombre": "mililitro", "simbolo": "ml",        "tipo": "volumen"},
+    {"nombre": "unidad",    "simbolo": "ud",        "tipo": "contable"},
+    {"nombre": "porcion",   "simbolo": "porciones", "tipo": "contable"},
 ]
 
 ESTADOS_PEDIDO = [
@@ -52,8 +51,9 @@ ESTADOS_PEDIDO = [
 ]
 
 FORMAS_PAGO = [
-    {"codigo": "EFECTIVO",     "descripcion": "Pago en efectivo", "habilitado": True},
-    {"codigo": "MERCADOPAGO",  "descripcion": "Pago por MercadoPago", "habilitado": True},
+    {"codigo": "EFECTIVO",      "descripcion": "Pago en efectivo", "habilitado": True},
+    {"codigo": "MERCADOPAGO",   "descripcion": "Pago por MercadoPago", "habilitado": True},
+    {"codigo": "TRANSFERENCIA", "descripcion": "Transferencia bancaria", "habilitado": True},
 ]
 
 

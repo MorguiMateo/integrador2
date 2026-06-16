@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 
 from app.core.config import settings
@@ -9,6 +9,7 @@ from app.core.deps import (
     REFRESH_COOKIE_NAME,
     get_current_active_user,
 )
+from app.core.rate_limit import get_client_ip, login_rate_limiter
 from app.core.uow import UnitOfWork
 from app.modules.auth.schema import LoginRequest, RegisterRequest
 from app.modules.auth.service import (
@@ -62,13 +63,21 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
 )
 def register(
     data: RegisterRequest,
+    request: Request,
     uow: UnitOfWork = Depends(),
 ):
-    with uow:
-        return create_usuario(
-            uow=uow,
-            data=UserCreate(**data.model_dump()),
-        )
+    ip = get_client_ip(request)
+    login_rate_limiter.enforce(ip)
+    try:
+        with uow:
+            return create_usuario(
+                uow=uow,
+                data=UserCreate(**data.model_dump()),
+            )
+    except Exception:
+        # cualquier registro fallido (ej: email duplicado) cuenta como intento fallido
+        login_rate_limiter.record_failure(ip)
+        raise
 
 
 @router.post(
@@ -78,8 +87,12 @@ def register(
 def login(
     data: LoginRequest,
     response: Response,
+    request: Request,
     uow: UnitOfWork = Depends(),
 ):
+    ip = get_client_ip(request)
+    login_rate_limiter.enforce(ip)
+
     with uow:
         usuario = authenticate_user(
             uow=uow,
@@ -88,6 +101,7 @@ def login(
         )
 
         if not usuario:
+            login_rate_limiter.record_failure(ip)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas.",

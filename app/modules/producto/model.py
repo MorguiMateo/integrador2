@@ -1,7 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Column, DateTime, Float, Text, func
+from sqlalchemy import CheckConstraint, Column, DateTime, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -18,9 +19,13 @@ class Producto(SQLModel, table=True):
     nombre: str = Field(index=True, min_length=2, max_length=150)
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
 
-    precio_base: float = Field(
-        default=0.0,
-        sa_column=Column(Float, nullable=False),
+    precio_base: Decimal = Field(
+        default=Decimal("0.00"),
+        sa_column=Column(
+            Numeric(10, 2),
+            CheckConstraint("precio_base >= 0", name="ck_producto_precio_base_no_negativo"),
+            nullable=False,
+        ),
     )
 
     imagenes_url: list[str] = Field(

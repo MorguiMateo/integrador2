@@ -34,6 +34,21 @@ class _FakeSDK:
         return self._payment
 
 
+class _FakePreference:
+    def create(self, data):
+        return {
+            "response": {
+                "id": "pref-123",
+                "init_point": "https://mp.test/checkout/pref-123",
+            }
+        }
+
+
+class _FakePreferenceSDK:
+    def preference(self):
+        return _FakePreference()
+
+
 def _crear_pago(client, cookies, pedido_id):
     return client.post(
         "/api/v1/pagos/crear",
@@ -64,6 +79,23 @@ def test_pago_rejected_deja_pedido_pendiente(client, client_headers, cliente_id,
     assert r.status_code == 201
     assert r.json()["mp_status"] == "rejected"
 
+    detalle = client.get(f"/api/v1/pedidos/{pedido_id}", cookies=client_headers)
+    assert detalle.json()["estado_codigo"] == "PENDIENTE"
+
+
+def test_crear_preferencia_devuelve_init_point(client, client_headers, cliente_id, producto_factory, pedido_factory, monkeypatch):
+    monkeypatch.setattr(pago_service, "_get_sdk", lambda: _FakePreferenceSDK())
+    pid = producto_factory()
+    pedido_id = pedido_factory(cliente_id, pid, estado="PENDIENTE")
+
+    r = client.post("/api/v1/pagos/preferencia", cookies=client_headers, json={"pedido_id": pedido_id})
+    assert r.status_code == 201
+    body = r.json()
+    assert body["init_point"] == "https://mp.test/checkout/pref-123"
+    assert body["preference_id"] == "pref-123"
+    assert body["pedido_id"] == pedido_id
+
+    # El pedido sigue PENDIENTE hasta que el webhook confirme el pago.
     detalle = client.get(f"/api/v1/pedidos/{pedido_id}", cookies=client_headers)
     assert detalle.json()["estado_codigo"] == "PENDIENTE"
 
