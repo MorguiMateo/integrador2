@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from decimal import Decimal
 from typing import Iterable, Optional
 
@@ -8,6 +9,7 @@ from sqlmodel import select
 
 from app.core.uow import UnitOfWork
 from app.core.websocket import manager as websocket_manager
+from app.modules.ingrediente.model import Ingrediente
 from app.modules.pedido.model import DetallePedido, HistorialEstadoPedido, Pedido
 from app.modules.pedido.schema import (
     DetallePedidoRead,
@@ -52,6 +54,9 @@ def _assert_puede_ver(pedido: Pedido, current_user_id: int, roles: Iterable[str]
 def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
     with UnitOfWork() as uow:
         detalles: list[DetallePedido] = []
+        # Acumula cuánto de cada ingrediente consume el pedido completo (receta x
+        # cantidad), sumando entre ítems que compartan ingredientes.
+        consumo_ingredientes: dict[int, float] = {}
 
         for item in data.items:
 
@@ -84,6 +89,17 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
             producto.stock_cantidad -= item.cantidad
             uow.session.add(producto)
 
+            # Receta del producto escalada por la cantidad pedida. Se saltean los
+            # ingredientes que el cliente removió en la personalización.
+            removidos = set(item.personalizacion or [])
+            for link in producto.ingrediente_links:
+                if link.ingrediente_id in removidos:
+                    continue
+                consumo_ingredientes[link.ingrediente_id] = (
+                    consumo_ingredientes.get(link.ingrediente_id, 0.0)
+                    + link.cantidad * item.cantidad
+                )
+
             detalles.append(
                 DetallePedido(
                     producto_id=item.producto_id,
@@ -94,6 +110,25 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                     personalizacion=item.personalizacion or [],
                 )
             )
+
+        # Descuento de stock de ingredientes (modelo made-to-order): el producto es
+        # una receta y los insumos se consumen al armar el pedido. Se bloquea la fila
+        # de cada ingrediente (with_for_update) para serializar checkouts concurrentes.
+        # Como el stock del ingrediente es entero, se consume ceil(total) (nunca de menos).
+        # Si alguno no alcanza, se aborta y el UoW revierte todo (incluido el stock de productos).
+        for ingrediente_id, total in consumo_ingredientes.items():
+            ingrediente = uow.session.get(Ingrediente, ingrediente_id, with_for_update=True)
+            necesario = math.ceil(total)
+            if ingrediente.stock_cantidad < necesario:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Stock insuficiente del ingrediente '{ingrediente.nombre}': "
+                        f"disponible {ingrediente.stock_cantidad}, requerido {necesario}."
+                    ),
+                )
+            ingrediente.stock_cantidad -= necesario
+            uow.session.add(ingrediente)
 
         subtotal = sum((d.subtotal_snap for d in detalles), Decimal("0.00"))
         descuento = Decimal("0.00")

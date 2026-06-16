@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from app.modules.auth.dependencies import require_admin
+from app.modules.auth.dependencies import require_admin, require_admin_or_stock
 from app.modules.ingrediente import service
 from app.modules.ingrediente.schema import (
     IngredienteCreate,
@@ -51,7 +51,8 @@ def crear_ingrediente(payload: IngredienteCreate) -> IngredienteRead:
 @router.put(
     "/{ingrediente_id}",
     response_model=IngredienteRead,
-    dependencies=[Depends(require_admin)],
+    # STOCK puede editar ingredientes (p.ej. ajustar stock); crear/eliminar siguen siendo ADMIN.
+    dependencies=[Depends(require_admin_or_stock)],
 )
 def actualizar_ingrediente(
     ingrediente_id: Annotated[int, Path(ge=1)],

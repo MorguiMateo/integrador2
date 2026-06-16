@@ -1,4 +1,5 @@
 from sqlmodel import Session, select
+from sqlalchemy import or_
 from app.core.database import engine
 from app.modules.rol.model import Rol
 from app.modules.unidad_medida.model import UnidadMedida
@@ -71,9 +72,13 @@ def _seed_roles(session: Session) -> None:
 
 def _seed_unidades_medida(session: Session) -> None:
     for data in UNIDADES_MEDIDA:
-        statement = (
-            select(UnidadMedida)
-            .where(UnidadMedida.simbolo == data["simbolo"])
+        # Dedup contra AMBAS restricciones UNIQUE (nombre y simbolo): si una unidad
+        # ya existe por cualquiera de las dos claves, se omite. Hace el seed idempotente.
+        statement = select(UnidadMedida).where(
+            or_(
+                UnidadMedida.nombre == data["nombre"],
+                UnidadMedida.simbolo == data["simbolo"],
+            )
         )
 
         existing = session.exec(statement).first()

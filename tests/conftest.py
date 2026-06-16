@@ -122,6 +122,22 @@ def pedidos_headers() -> dict:
 
 
 @pytest.fixture
+def stock_headers() -> dict:
+    with Session(engine) as session:
+        usuario = Usuario(
+            nombre="Sto",
+            apellido="Ck",
+            email="stock@test.com",
+            password_hash=get_password_hash("stock123"),
+        )
+        session.add(usuario)
+        session.flush()
+        session.add(UsuarioRol(usuario_id=usuario.id, rol_codigo="STOCK"))
+        session.commit()
+    return _login("stock@test.com", "stock123")
+
+
+@pytest.fixture
 def cliente_id(client_headers) -> int:
     with Session(engine) as session:
         usuario = session.exec(select(Usuario).where(Usuario.email == "cli@test.com")).first()

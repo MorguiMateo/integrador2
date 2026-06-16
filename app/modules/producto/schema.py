@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.types import MoneyDecimal
 from app.modules.categoria.schema import CategoriaRead
 from app.modules.ingrediente.schema import IngredienteRead
 from app.modules.unidad_medida.schema import UnidadMedidaRead
@@ -42,7 +43,7 @@ class ProductoIngredienteRead(BaseModel):
 class ProductoBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: Optional[str] = None
-    precio_base: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
+    precio_base: MoneyDecimal = Field(ge=0, max_digits=10, decimal_places=2)
     imagenes_url: list[str] = []
     stock_cantidad: int = Field(default=0, ge=0)
     disponible: bool = True
