@@ -110,9 +110,13 @@ def crear_preferencia(data: PreferenciaCreate, current_user: Usuario) -> Prefere
                 "failure": f"{settings.FRONTEND_URL}/orders/{pedido.id}?pago=failure",
                 "pending": f"{settings.FRONTEND_URL}/orders/{pedido.id}?pago=pending",
             },
-            "auto_return": "approved",
             "metadata": {"pedido_id": pedido.id},
         }
+        # MercadoPago rechaza auto_return si la back_url de éxito no es pública
+        # (con localhost devuelve "invalid_auto_return"). En dev queda sin auto_return
+        # (el usuario vuelve con el botón "Volver al sitio"); en prod redirige solo.
+        if not any(host in settings.FRONTEND_URL for host in ("localhost", "127.0.0.1")):
+            preference_data["auto_return"] = "approved"
         if settings.MP_NOTIFICATION_URL:
             preference_data["notification_url"] = settings.MP_NOTIFICATION_URL
 
