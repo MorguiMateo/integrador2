@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
+    MP_ACCESS_TOKEN: str = ""
+    MP_PUBLIC_KEY: str = ""
+    MP_WEBHOOK_SECRET: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         ##extra ignora las variables en .env no declaradas
