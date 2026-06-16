@@ -10,6 +10,8 @@ from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.categoria.router import router as categoria_router
 from app.modules.direccion_entrega.router import router as direccion_router
+from app.modules.estadisticas.router import router as estadisticas_router
+from app.modules.pago.router import router as pago_router
 from app.modules.ingrediente.router import router as ingrediente_router
 from app.modules.pedido.router import router as pedido_router
 from app.modules.producto.router import router as producto_router
@@ -48,6 +50,8 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(categoria_router, prefix="/api/v1")
 app.include_router(direccion_router, prefix="/api/v1")
+app.include_router(estadisticas_router, prefix="/api/v1")
+app.include_router(pago_router, prefix="/api/v1")
 app.include_router(ingrediente_router, prefix="/api/v1")
 app.include_router(producto_router, prefix="/api/v1")
 app.include_router(pedido_router, prefix="/api/v1")

@@ -125,7 +125,7 @@ async def pedidos_ws(websocket: WebSocket) -> None:
     await manager.connect(websocket, user_id=usuario.id, roles=set(usuario.roles))
     try:
         while True:
-            await websocket.receive()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         pass
     finally:
