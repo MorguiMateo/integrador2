@@ -1,10 +1,5 @@
-"""Seed de datos de prueba: 3 productos con sus ingredientes, stock y categoría.
-
-Idempotente: se puede correr varias veces sin duplicar (busca por nombre).
-Requiere que las unidades de medida ya estén seedeadas (run_seed / lifespan).
-
-Uso:  .venv/bin/python3.13 -m app.db.seed_demo
-"""
+##carga 3 productos de prueba con sus ingredientes, stock y categoria
+##se puede correr varias veces, busca por nombre asi no duplica. necesita las unidades ya cargadas
 from decimal import Decimal
 
 from sqlmodel import Session, select
@@ -17,8 +12,7 @@ from app.modules.producto.link_models import ProductoCategoria, ProductoIngredie
 from app.modules.unidad_medida.model import UnidadMedida
 
 
-# --- helpers get-or-create (idempotencia) -----------------------------------
-
+##helpers que buscan o crean, asi no se duplica
 def _get_unidad(session: Session, simbolo: str) -> UnidadMedida:
     unidad = session.exec(
         select(UnidadMedida).where(UnidadMedida.simbolo == simbolo)
@@ -52,8 +46,7 @@ def _get_or_create_ingrediente(
     return ing
 
 
-# --- definición de los 3 productos ------------------------------------------
-# Cada ingrediente: (nombre, stock_propio, es_alergeno, cantidad, simbolo_unidad, es_removible)
+##los 3 productos. cada ingrediente va asi: (nombre, stock, es_alergeno, cantidad, unidad, es_removible)
 PRODUCTOS = [
     {
         "nombre": "Hamburguesa Clásica",
@@ -113,7 +106,7 @@ CATEGORIAS_DESC = {
 
 def seed_demo(session: Session) -> None:
     for data in PRODUCTOS:
-        # Idempotencia: si el producto ya existe (por nombre, no borrado), se omite.
+        ##si el producto ya existe (por nombre y no borrado) lo salteamos
         existing = session.exec(
             select(Producto).where(
                 Producto.nombre == data["nombre"],
@@ -139,9 +132,9 @@ def seed_demo(session: Session) -> None:
             unidad_venta_id=unidad_venta.id,
         )
         session.add(producto)
-        session.flush()  # asigna producto.id
+        session.flush()  ##asi tenemos el producto.id
 
-        # Categoría principal
+        ##categoria principal
         session.add(
             ProductoCategoria(
                 producto_id=producto.id,
@@ -150,7 +143,7 @@ def seed_demo(session: Session) -> None:
             )
         )
 
-        # Ingredientes + stock propio + asociación con cantidad/unidad
+        ##cargamos los ingredientes con su stock y la cantidad que lleva el producto
         for nombre, stock, alergeno, cantidad, simbolo, removible in data["ingredientes"]:
             ingrediente = _get_or_create_ingrediente(session, nombre, stock, alergeno)
             unidad = _get_unidad(session, simbolo)

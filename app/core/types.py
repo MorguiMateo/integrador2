@@ -1,5 +1,3 @@
-##   - types.py — define tipos reutilizables (MoneyDecimal, QuantityDecimal) que son Decimal pero se serializan a float cuando se convierten a JSON.
-
 from decimal import Decimal
 from typing import Annotated
 

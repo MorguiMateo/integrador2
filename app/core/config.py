@@ -1,4 +1,3 @@
-## ⏺ - config.py — lee las variables de entorno (.env) y las expone como un objeto settings tipado con Pydantic, accesible desde cualquier parte de la app.
 import cloudinary
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,7 +20,7 @@ class Settings(BaseSettings):
     MP_WEBHOOK_SECRET: str = ""
     MP_NOTIFICATION_URL: str = ""
 
-    # URL del storefront, usada para las back_urls del Checkout PRO.
+    ##url del front, la usa mercado pago para volver despues de pagar
     FRONTEND_URL: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(

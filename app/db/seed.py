@@ -72,8 +72,7 @@ def _seed_roles(session: Session) -> None:
 
 def _seed_unidades_medida(session: Session) -> None:
     for data in UNIDADES_MEDIDA:
-        # Dedup contra AMBAS restricciones UNIQUE (nombre y simbolo): si una unidad
-        # ya existe por cualquiera de las dos claves, se omite. Hace el seed idempotente.
+        ##si ya existe por nombre o simbolo la salteamos, asi no se duplica al correr el seed de nuevo
         statement = select(UnidadMedida).where(
             or_(
                 UnidadMedida.nombre == data["nombre"],

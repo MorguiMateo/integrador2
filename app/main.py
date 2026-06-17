@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
 
 from app.core.database import create_db_and_tables, engine
+from app.core.exceptions import register_exception_handlers
+from app.core.logging_mw import configure_logging, register_request_logging
 from app.db.seed import run_seed
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
@@ -17,6 +19,9 @@ from app.modules.pedido.router import router as pedido_router
 from app.modules.producto.router import router as producto_router
 from app.modules.upload.router import router as upload_router
 from app.modules.unidad_medida.router import router as unidad_medida_router
+
+
+configure_logging()
 
 
 @asynccontextmanager
@@ -44,6 +49,10 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+##logging/timing de las peticiones por consola + el manejo de errores centralizado
+register_request_logging(app)
+register_exception_handlers(app)
 
 
 app.include_router(auth_router, prefix="/api/v1")

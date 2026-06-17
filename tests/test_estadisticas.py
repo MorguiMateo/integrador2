@@ -71,7 +71,7 @@ def test_ventas_por_periodo(client, admin_headers, cliente_id, producto_factory,
 def test_productos_top(client, admin_headers, cliente_id, producto_factory, pedido_factory):
     pid = producto_factory()
     pedido_factory(cliente_id, pid, estado="ENTREGADO")
-    pedido_factory(cliente_id, pid, estado="CANCELADO")  # EST-01: no debe sumar
+    pedido_factory(cliente_id, pid, estado="CANCELADO")  ##el cancelado no tiene que sumar
     r = client.get("/api/v1/estadisticas/productos-top", cookies=admin_headers)
     assert r.status_code == 200
     data = r.json()
@@ -85,7 +85,7 @@ def test_ingresos_solo_approved(client, admin_headers, cliente_id, producto_fact
     pedido_ok = pedido_factory(cliente_id, pid, estado="CONFIRMADO")
     pedido_rechazado = pedido_factory(cliente_id, pid, estado="PENDIENTE")
     _insertar_pago(pedido_ok, "approved")
-    _insertar_pago(pedido_rechazado, "rejected")  # EST-03: solo approved cuenta
+    _insertar_pago(pedido_rechazado, "rejected")  ##solo los approved cuentan
 
     r = client.get("/api/v1/estadisticas/ingresos", cookies=admin_headers)
     assert r.status_code == 200

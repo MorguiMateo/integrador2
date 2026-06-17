@@ -44,12 +44,12 @@ def test_logout_ok(client):
 
     r = client.post("/api/v1/auth/logout")
     assert r.status_code == 204
-    # tras el logout se borran las cookies de sesión → /me vuelve a quedar sin autenticar
+    ##despues del logout se borran las cookies, asi que /me vuelve a dar 401
     assert client.get("/api/v1/auth/me").status_code == 401
 
 
 def test_login_rate_limit_429(client):
-    # spec §4.3: 5 intentos fallidos por IP en 15 min → el 6º responde 429 + Retry-After
+    ##despues de 5 intentos fallidos, el sexto tiene que tirar 429 con el Retry-After
     _registrar(client, email="rl@test.com")
     respuesta = None
     for _ in range(6):
@@ -59,7 +59,7 @@ def test_login_rate_limit_429(client):
 
 
 def test_login_correcto_no_bloquea(client):
-    # los logins exitosos no cuentan como intentos fallidos
+    ##los logins que entran bien no suman como intento fallido
     _registrar(client, email="ok@test.com", password="secreto123")
     for _ in range(8):
         r = client.post("/api/v1/auth/login", json={"email": "ok@test.com", "password": "secreto123"})

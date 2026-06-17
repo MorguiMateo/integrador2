@@ -1,6 +1,4 @@
-"""Modelo made-to-order: los ingredientes NO se descuentan al crear el producto,
-sino al hacer el pedido (receta x cantidad), bloqueando si el stock no alcanza."""
-
+##los ingredientes NO se descuentan al crear el producto, sino al hacer el pedido (receta x cantidad)
 from sqlmodel import Session, select
 
 from app.core.database import engine
@@ -67,7 +65,7 @@ def _pedir(client, client_headers, producto_id: int, cantidad: int):
 def test_crear_producto_no_descuenta_ingrediente(client, admin_headers):
     ing_id = _crear_ingrediente("Cheddar A", 5)
     _crear_producto_con_ingrediente(client, admin_headers, ing_id, _unidad_id(), cantidad=1.0)
-    assert _stock(ing_id) == 5  # crear el producto NO toca el stock del ingrediente
+    assert _stock(ing_id) == 5  ##crear el producto no toca el stock del ingrediente
 
 
 def test_pedido_descuenta_ingrediente_por_cantidad(client, admin_headers, client_headers):
@@ -77,15 +75,15 @@ def test_pedido_descuenta_ingrediente_por_cantidad(client, admin_headers, client
     r = _pedir(client, client_headers, prod_id, cantidad=3)
 
     assert r.status_code == 201, r.text
-    assert _stock(ing_id) == 2  # 5 - 3*1
+    assert _stock(ing_id) == 2  ##5 - 3*1
 
 
 def test_pedido_que_excede_ingrediente_se_bloquea(client, admin_headers, client_headers):
     ing_id = _crear_ingrediente("Cheddar C", 5)
     prod_id = _crear_producto_con_ingrediente(client, admin_headers, ing_id, _unidad_id(), cantidad=1.0)
 
-    # 5 fetas, 1 por burger, pide 6 -> no existe la 6ta feta.
+    ##5 fetas, 1 por burger, pide 6 -> no alcanza para la 6ta
     r = _pedir(client, client_headers, prod_id, cantidad=6)
 
     assert r.status_code == 400, r.text
-    assert _stock(ing_id) == 5  # rollback del UoW: no se consumió nada
+    assert _stock(ing_id) == 5  ##rollback del UoW: no se consumio nada

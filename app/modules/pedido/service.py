@@ -25,8 +25,7 @@ FSM_TRANSITIONS = {
     "PENDIENTE": ["CONFIRMADO", "CANCELADO"],
     "CONFIRMADO": ["EN_PREP", "CANCELADO"],
 
-    # Desde cocina (EN_PREP) el pedido se entrega o se cancela. Se eliminó EN_CAMINO.
-  
+    ##desde la cocina (EN_PREP) el pedido se entrega o se cancela. sacamos el EN_CAMINO
     "EN_PREP": ["ENTREGADO", "CANCELADO"],
     "ENTREGADO": [],
     "CANCELADO": [],
@@ -54,16 +53,12 @@ def _assert_puede_ver(pedido: Pedido, current_user_id: int, roles: Iterable[str]
 def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
     with UnitOfWork() as uow:
         detalles: list[DetallePedido] = []
-        # Acumula cuánto de cada ingrediente consume el pedido completo (receta x
-        # cantidad), sumando entre ítems que compartan ingredientes.
+        ##suma cuanto de cada ingrediente gasta todo el pedido (receta x cantidad), juntando los items que comparten ingredientes
         consumo_ingredientes: dict[int, float] = {}
 
         for item in data.items:
 
-            # with_for_update bloquea la fila del producto hasta el commit del
-            # pedido, así dos checkouts simultáneos del mismo producto se
-            # serializan y no se puede sobrevender el stock.
-
+            ##with_for_update bloquea la fila del producto hasta el commit, asi dos compras a la vez no sobrevenden el stock
             producto = uow.session.get(Producto, item.producto_id, with_for_update=True)
             if producto is None or producto.deleted_at is not None:
                 raise HTTPException(
@@ -89,8 +84,7 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
             producto.stock_cantidad -= item.cantidad
             uow.session.add(producto)
 
-            # Receta del producto escalada por la cantidad pedida. Se saltean los
-            # ingredientes que el cliente removió en la personalización.
+            ##la receta del producto x la cantidad pedida, salteando los ingredientes que el cliente saco en la personalizacion
             removidos = set(item.personalizacion or [])
             for link in producto.ingrediente_links:
                 if link.ingrediente_id in removidos:
@@ -111,11 +105,9 @@ def create_pedido(data: PedidoCreate, usuario_id: int) -> PedidoRead:
                 )
             )
 
-        # Descuento de stock de ingredientes (modelo made-to-order): el producto es
-        # una receta y los insumos se consumen al armar el pedido. Se bloquea la fila
-        # de cada ingrediente (with_for_update) para serializar checkouts concurrentes.
-        # Como el stock del ingrediente es entero, se consume ceil(total) (nunca de menos).
-        # Si alguno no alcanza, se aborta y el UoW revierte todo (incluido el stock de productos).
+        ##descontamos el stock de los ingredientes (el producto es una receta y los insumos se gastan al armarlo)
+        ##bloqueamos cada ingrediente (with_for_update) por si hay compras a la vez. como el stock es entero, redondeamos para arriba (ceil)
+        ##si alguno no alcanza, abortamos y el UoW revierte todo (tambien el stock de productos)
         for ingrediente_id, total in consumo_ingredientes.items():
             ingrediente = uow.session.get(Ingrediente, ingrediente_id, with_for_update=True)
             necesario = math.ceil(total)
@@ -189,8 +181,7 @@ def list_pedidos(
         if estado:
             stmt = stmt.where(Pedido.estado_codigo == estado)
 
-        # Orden estable y determinista: sin esto, PostgreSQL reordena las filas
-        # tras cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar.
+        ##orden fijo: sin esto postgres reordena las filas despues de cada UPDATE y en la tabla del admin los pedidos "saltan" de lugar
         stmt = stmt.order_by(Pedido.created_at.desc(), Pedido.id.desc()).offset(skip).limit(limit)
         pedidos = uow.session.exec(stmt).all()
         return [PedidoRead.model_validate(p) for p in pedidos]

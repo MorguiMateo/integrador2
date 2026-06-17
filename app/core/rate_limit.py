@@ -1,9 +1,5 @@
-"""Rate limiting simple en memoria para endpoints de autenticación.
-
-Implementa el spec §4.3: máximo 5 intentos FALLIDOS por IP en una ventana de 15
-minutos sobre login y registro. Al superarlo responde 429 con header Retry-After.
-Solo cuenta los intentos fallidos (un login/registro exitoso no suma).
-"""
+##corta los intentos de login: max 5 fallidos por IP en 15 min, sino tira 429
+##solo cuenta los fallidos, si entras bien no suma nada
 from __future__ import annotations
 
 import time
@@ -27,7 +23,7 @@ class RateLimiter:
             cola.popleft()
 
     def enforce(self, ip: str) -> None:
-        """Lanza 429 si la IP ya superó el límite de intentos fallidos."""
+        ##si la IP ya se paso del limite, tira 429
         ahora = time.monotonic()
         with self._lock:
             self._purge(ip, ahora)
@@ -41,14 +37,14 @@ class RateLimiter:
                 )
 
     def record_failure(self, ip: str) -> None:
-        """Registra un intento fallido para la IP."""
+        ##anota un intento fallido de esa IP
         ahora = time.monotonic()
         with self._lock:
             self._purge(ip, ahora)
             self._attempts[ip].append(ahora)
 
     def reset(self) -> None:
-        """Limpia todo el estado (usado por los tests entre casos)."""
+        ##limpia todo, lo usan los tests entre casos
         with self._lock:
             self._attempts.clear()
 

@@ -75,7 +75,7 @@ def register(
                 data=UserCreate(**data.model_dump()),
             )
     except Exception:
-        # cualquier registro fallido (ej: email duplicado) cuenta como intento fallido
+        ##si el registro falla (ej: email repetido) tambien cuenta como intento fallido
         login_rate_limiter.record_failure(ip)
         raise
 

@@ -95,7 +95,7 @@ def test_crear_preferencia_devuelve_init_point(client, client_headers, cliente_i
     assert body["preference_id"] == "pref-123"
     assert body["pedido_id"] == pedido_id
 
-    # El pedido sigue PENDIENTE hasta que el webhook confirme el pago.
+    ##el pedido queda PENDIENTE hasta que el webhook confirme el pago
     detalle = client.get(f"/api/v1/pedidos/{pedido_id}", cookies=client_headers)
     assert detalle.json()["estado_codigo"] == "PENDIENTE"
 

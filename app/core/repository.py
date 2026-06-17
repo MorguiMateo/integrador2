@@ -1,4 +1,3 @@
-##  - repository.py — define BaseRepository, la clase genérica con operaciones comunes (get, save, soft_delete, active_ids) que heredan todos los repositories del proyecto.
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Generic, Optional, TypeVar
@@ -15,11 +14,7 @@ class BaseRepository(Generic[ModelT]):
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    ##query base con filtro delete_at = none (soft delete)
-    ##self indica que es un metodo dentro de una clase
-    ## * obliga que todos los argumentos que le sigan sean parametros nombrados
-    ## include_deleted controla si la consulta debe traer o no los registros "borrados" 
-    ## -> SelectOfScalar[ModelT]: devuelve un objeto de tipo SelectOfScalar (devuelve filas individuales)
+    ##query base que ya filtra los borrados (soft delete)
     def base_stmt(self, *, include_deleted: bool = False) -> SelectOfScalar[ModelT]:
         stmt = select(self.model)
         if not include_deleted:

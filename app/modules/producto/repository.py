@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-##maneja relaciones
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 

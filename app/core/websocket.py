@@ -38,10 +38,10 @@ class ConnectionManager:
         self.active_connections.pop(websocket, None)
 
     def _should_send(self, info: ConnInfo, message: Any) -> bool:
-        # Los gestores (ADMIN/PEDIDOS) reciben todos los eventos.
+        ##admin y pedidos ven todo
         if info.roles & GESTOR_ROLES:
             return True
-        # Un cliente solo recibe eventos de sus propios pedidos.
+        ##el cliente solo ve sus propios pedidos
         owner_id = message.get("owner_id") if isinstance(message, dict) else None
         return owner_id == info.user_id
 

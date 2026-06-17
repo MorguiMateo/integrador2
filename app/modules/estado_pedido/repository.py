@@ -5,8 +5,7 @@ from app.modules.estado_pedido.model import EstadoPedido
 
 
 class EstadoPedidoRepository(BaseRepository[EstadoPedido]):
-    # EstadoPedido es una tabla de catálogo (PK = codigo, sin soft delete),
-    # por eso base_stmt no filtra deleted_at, igual que UnidadMedidaRepository.
+    ##es una tabla de catalogo (PK = codigo, sin soft delete), por eso no filtra deleted_at
     model = EstadoPedido
 
     def base_stmt(self, *, include_deleted: bool = False):

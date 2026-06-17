@@ -32,8 +32,7 @@ def _get_sdk() -> mercadopago.SDK:
 
 
 def _evento_pago_confirmado(pedido_id: int, owner_id: Optional[int]) -> dict:
-    # Mismo evento que usa el módulo pedido para que el Store (cliente dueño) y el
-    # panel admin lo reciban y refresquen: ambos escuchan ORDER_STATE_CHANGED.
+    ##mismo evento que usa pedido, asi el cliente y el admin lo escuchan y refrescan (ORDER_STATE_CHANGED)
     return {
         "event": "ORDER_STATE_CHANGED",
         "pedido_id": pedido_id,
@@ -44,8 +43,8 @@ def _evento_pago_confirmado(pedido_id: int, owner_id: Optional[int]) -> dict:
 
 
 def _items_preferencia(pedido: Pedido) -> list[dict]:
-    # Si hay descuento, una sola línea con el total garantiza que el monto cobrado
-    # coincida con Pedido.total. Si no, se itemiza producto por producto + envío.
+    ##si hay descuento mandamos una sola linea con el total, asi MP cobra justo lo de Pedido.total
+    ##si no hay descuento, itemizamos producto por producto + el envio
     if pedido.descuento and pedido.descuento > 0:
         return [
             {
@@ -87,7 +86,7 @@ def crear_preferencia(data: PreferenciaCreate, current_user: Usuario) -> Prefere
         if pedido.estado_codigo != "PENDIENTE":
             raise HTTPException(status_code=409, detail="El pedido no está pendiente de pago.")
 
-        # Reutiliza el pago si ya se generó una preferencia para este pedido.
+        ##si ya generamos una preferencia para este pedido, reusamos el pago
         repo = PagoRepository(uow.session)
         pago = repo.get_by_pedido(pedido.id)
         if pago is None:
@@ -112,9 +111,8 @@ def crear_preferencia(data: PreferenciaCreate, current_user: Usuario) -> Prefere
             },
             "metadata": {"pedido_id": pedido.id},
         }
-        # MercadoPago rechaza auto_return si la back_url de éxito no es pública
-        # (con localhost devuelve "invalid_auto_return"). En dev queda sin auto_return
-        # (el usuario vuelve con el botón "Volver al sitio"); en prod redirige solo.
+        ##MP rechaza auto_return si la url de exito no es publica (con localhost tira "invalid_auto_return")
+        ##en dev queda sin auto_return (volves con el boton "Volver al sitio"), en prod redirige solo
         if not any(host in settings.FRONTEND_URL for host in ("localhost", "127.0.0.1")):
             preference_data["auto_return"] = "approved"
         if settings.MP_NOTIFICATION_URL:
