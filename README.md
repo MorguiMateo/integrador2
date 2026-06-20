@@ -60,4 +60,4 @@ pytest --cov=app
 ## Entrega
 
 -Drive: <https://docs.google.com/spreadsheets/d/1plNcvdJT7733y3KcPK-2RKfbEN0qjQ9UljizbHL_bxo/edit?gid=183617050#gid=183617050>
--Video: https://youtu.be/fUe9Hq-Kz3M
+-Video: https://youtu.be/7F0qie-oeJA
